@@ -12,6 +12,7 @@ import {
   LeaderboardEntry,
   AIPromptTemplate,
   AIToolItem,
+  EmailPermission,
 } from "../types";
 import {
   MOCK_USERS,
@@ -24,6 +25,7 @@ import {
   INITIAL_LEADERBOARD,
   INITIAL_PROMPTS,
   INITIAL_AI_TOOLS,
+  INITIAL_EMAIL_PERMISSIONS,
 } from "../data/initialData";
 
 export type NavTab =
@@ -128,10 +130,19 @@ interface AppContextType {
   setIsAuthModalOpen: (open: boolean) => void;
   isAccountSettingsModalOpen: boolean;
   setIsAccountSettingsModalOpen: (open: boolean) => void;
+  isEmailPermissionModalOpen: boolean;
+  setIsEmailPermissionModalOpen: (open: boolean) => void;
   loginWithGoogle: (customGoogleData?: Partial<UserProfile>) => void;
   loginWithEmail: (email: string, password?: string, extraData?: Partial<UserProfile>) => boolean;
   logout: () => void;
   updateUserProfile: (data: Partial<UserProfile>) => void;
+
+  // Email Role-Based Access Control (RBAC)
+  emailPermissions: EmailPermission[];
+  addEmailPermission: (perm: Omit<EmailPermission, "id" | "grantedAt">) => void;
+  updateEmailPermission: (id: string, data: Partial<EmailPermission>) => void;
+  deleteEmailPermission: (id: string) => void;
+  findPermissionByEmail: (email: string) => EmailPermission | undefined;
 
   // Toasts
   toasts: ToastNotification[];

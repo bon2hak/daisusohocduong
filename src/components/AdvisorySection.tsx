@@ -61,7 +61,7 @@ export const AdvisorySection: React.FC = () => {
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold mb-2">
             <Users className="w-3.5 h-3.5 text-blue-600" />
-            <span>Trường THCS Đề Thám • Năm học 2025 - 2026</span>
+            <span>Trường THCS Đề Thám • Năm học 2026 - 2027</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <span>Ban Chủ Nhiệm & Hội Đồng Cố Vấn CLB</span>

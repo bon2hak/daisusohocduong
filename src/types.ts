@@ -219,6 +219,22 @@ export interface AIToolItem {
   isFeatured?: boolean;
 }
 
+export interface EmailPermission {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  roleTitle: string;
+  accountType: "student" | "teacher";
+  clubRole?: string;
+  clubDuties?: string;
+  classroom?: string;
+  grantedBy: string;
+  grantedAt: string;
+  status: "active" | "revoked";
+  notes?: string;
+}
+
 export interface ClubAdvisor {
   id: string;
   name: string;
