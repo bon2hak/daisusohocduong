@@ -1,0 +1,6 @@
+{
+  "name": "Đại Sứ Số Học Đường",
+  "description": "Cổng thông tin, Blog, Kho học liệu, Kỹ năng số, Hoạt động Đại sứ số, Góc học sinh & Trợ lý AI học đường",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
