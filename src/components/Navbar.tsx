@@ -100,7 +100,7 @@ export const Navbar: React.FC = () => {
               🌐 Cổng Thông Tin Số
             </span>
             <span className="hidden sm:inline">
-              Trường THCS Đề Thám • Năm học 2025 - 2026
+              Trường THCS Đề Thám • Năm học 2026 - 2027
             </span>
             <span className="text-sky-200 hidden md:inline">|</span>
             <span className="italic hidden md:inline text-sky-100">
