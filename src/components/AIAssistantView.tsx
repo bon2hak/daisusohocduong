@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Bot,
   Sparkles,
@@ -26,6 +26,8 @@ import {
   FileText,
   User,
   CheckCircle2,
+  Lock,
+  RotateCcw,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useApp } from "../context/AppContext";
@@ -36,6 +38,9 @@ export const AIAssistantView: React.FC = () => {
     showToast,
     currentUser,
     currentRole,
+    isAuthenticated,
+    setIsAuthModalOpen,
+    setIsAccountSettingsModalOpen,
     posts,
     setActivePostDetail,
     setEditingPost,
@@ -52,18 +57,31 @@ export const AIAssistantView: React.FC = () => {
   } = useApp();
 
   const isSuperAdmin = currentRole === "super_admin" || currentRole === "teacher";
+  const isEmailVerified = currentUser.isLoggedIn && !!currentUser.email && currentUser.email.includes("@") && isAuthenticated;
 
   const [activeSubTab, setActiveSubTab] = useState<
     "chat" | "safety-checker" | "articles" | "prompts" | "tools"
   >("chat");
 
-  // Chat states
+  const emailStorageKey = currentUser?.email
+    ? `daisu_ai_chat_${currentUser.email}`
+    : "daisu_ai_chat_default";
+
+  // Chat states with per-email persistence
   const [messages, setMessages] = useState<
     { role: "user" | "assistant"; content: string; time: string }[]
-  >([
-    {
-      role: "assistant",
-      content: `Xin chào ${currentUser.name}! Tôi là **Trợ lý AI Đại sứ số Học đường**.
+  >(() => {
+    const saved = localStorage.getItem(emailStorageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    return [
+      {
+        role: "assistant",
+        content: `Xin chào ${currentUser.name || "bạn"}! Tôi là **Trợ lý AI Đại sứ số Học đường** (Phiên làm việc liên kết Gmail: \`${currentUser.email || "Chưa đăng nhập Gmail"}\`).
 Phương châm của chúng ta: *"Học kỹ năng số – Sống có trách nhiệm – Lan tỏa điều tốt đẹp"*.
 
 Tôi có thể giúp bạn:
@@ -72,12 +90,23 @@ Tôi có thể giúp bạn:
 3. ✍️ Lên ý tưởng bài viết tuyên truyền, kịch bản video, dự án STEM.
 4. 💻 Hướng dẫn sử dụng các công cụ Google Gemini, Canva, NotebookLM.
 
+${!isEmailVerified ? "\n> ⚠️ *Lưu ý: Để gửi câu hỏi và nhận câu trả lời AI được cá nhân hóa theo email của bạn, vui lòng đăng nhập bằng Gmail.*" : ""}
+
 Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc của bạn nhé!`,
-      time: "Vừa xong",
-    },
-  ]);
+        time: "Vừa xong",
+      },
+    ];
+  });
+
   const [inputMessage, setInputMessage] = useState("");
   const [isLoadingChat, setIsLoadingChat] = useState(false);
+
+  // Sync chat persistence when email or messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(emailStorageKey, JSON.stringify(messages));
+    }
+  }, [messages, emailStorageKey]);
 
   // Safety Checker states
   const [safetyInput, setSafetyInput] = useState("");
@@ -104,10 +133,32 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
     "Cách viết Prompt để Gemini đóng vai gia sư tiếng Anh 1-1.",
   ];
 
-  // Chat sender
+  const handleClearChat = () => {
+    if (window.confirm("Bạn có chắc chắn muốn làm mới toàn bộ lịch sử trò chuyện AI này không?")) {
+      const initial = [
+        {
+          role: "assistant" as const,
+          content: `Đã làm mới phiên trò chuyện! Chào mừng ${currentUser.name || "bạn"} tiếp tục đặt câu hỏi cho Trợ lý AI Đại sứ số.`,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ];
+      setMessages(initial);
+      localStorage.setItem(emailStorageKey, JSON.stringify(initial));
+      showToast("Đã làm mới lịch sử trò chuyện!", "info");
+    }
+  };
+
+  // Chat sender with Gmail Enforcement
   const handleSendMessage = async (customText?: string) => {
     const textToSend = customText || inputMessage;
     if (!textToSend.trim() || isLoadingChat) return;
+
+    // Strict check for Gmail Login
+    if (!isEmailVerified) {
+      showToast("Vui lòng đăng nhập bằng tài khoản Gmail để sử dụng Trợ lý AI!", "warning");
+      setIsAuthModalOpen(true);
+      return;
+    }
 
     const userMsg = {
       role: "user" as const,
@@ -126,6 +177,11 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
         body: JSON.stringify({
           message: textToSend.trim(),
           history: messages.slice(-4),
+          userEmail: currentUser.email,
+          userName: currentUser.name,
+          userRole: currentRole,
+          classroom: currentUser.classroom,
+          clubRole: currentUser.clubRole,
         }),
       });
 
@@ -154,9 +210,17 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
     }
   };
 
-  // Safety checker
+  // Safety checker with Gmail Enforcement
   const handleCheckSafety = async () => {
     if (!safetyInput.trim() || isLoadingSafety) return;
+
+    // Strict check for Gmail Login
+    if (!isEmailVerified) {
+      showToast("Vui lòng đăng nhập bằng Gmail để sử dụng công cụ Phân tích An toàn!", "warning");
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     setIsLoadingSafety(true);
     setSafetyResult(null);
 
@@ -164,7 +228,11 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
       const res = await fetch("/api/gemini/safety-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ textToCheck: safetyInput.trim() }),
+        body: JSON.stringify({
+          textToCheck: safetyInput.trim(),
+          userEmail: currentUser.email,
+          userName: currentUser.name,
+        }),
       });
       const data = await res.json();
       setSafetyResult(data.analysis || "Không có kết quả phân tích.");
@@ -181,6 +249,17 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
     setCopiedPromptId(id);
     showToast("Đã sao chép câu lệnh Prompt mẫu vào bộ nhớ tạm!", "success");
     setTimeout(() => setCopiedPromptId(null), 2500);
+  };
+
+  const handleUsePromptInChat = (prompt: string) => {
+    if (!isEmailVerified) {
+      showToast("Vui lòng đăng nhập Gmail để gửi câu lệnh vào Trợ lý AI!", "warning");
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setActiveSubTab("chat");
+    setInputMessage(prompt);
+    showToast("Đã chuyển câu lệnh vào khung trò chuyện AI!", "info");
   };
 
   // Filtered AI Articles
@@ -237,8 +316,8 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
   return (
     <div className="space-y-8 pb-12">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 rounded-3xl p-6 sm:p-10 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-2 max-w-2xl">
+      <div className="bg-gradient-to-r from-indigo-950 via-blue-900 to-slate-900 rounded-3xl p-6 sm:p-9 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+        <div className="space-y-2 max-w-2xl z-10">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-indigo-200 text-xs font-semibold backdrop-blur-md">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
             <span>Trung tâm Trí tuệ nhân tạo Gemini 3.7 & Kỹ năng số</span>
@@ -251,7 +330,7 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 z-10">
           {isSuperAdmin && (
             <div className="flex items-center gap-2">
               <button
@@ -267,10 +346,94 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
 
           <span className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <span>Gemini AI Đang Hoạt Động</span>
+            <span>Gemini AI 3.7 Sẵn Sàng</span>
           </span>
         </div>
       </div>
+
+      {/* Gmail Authentication Status / Activation Card */}
+      {isEmailVerified ? (
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50/70 to-blue-50/60 border border-emerald-200/90 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-black text-emerald-950">Tài khoản AI đang liên kết:</span>
+                <span className="bg-white/90 text-emerald-900 font-bold px-2.5 py-0.5 rounded-lg text-xs font-mono border border-emerald-200 shadow-2xs">
+                  {currentUser.email}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-bold bg-emerald-100/90 px-2 py-0.5 rounded-md">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Đã xác thực Gmail
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-800/90 mt-0.5">
+                <strong className="font-semibold">{currentUser.name}</strong> • {currentUser.classroom || "CLB Đại sứ số"} • {currentUser.clubRole || currentUser.roleTitle}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-300 rounded-xl font-bold text-xs transition-colors shadow-2xs"
+            >
+              Đổi Gmail
+            </button>
+            <button
+              onClick={handleClearChat}
+              className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-medium text-xs transition-colors shadow-2xs"
+              title="Làm mới lịch sử trò chuyện của Gmail này"
+            >
+              <RotateCcw className="w-3.5 h-3.5 inline mr-1" />
+              Làm mới chat
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-rose-500/15 border-2 border-amber-400/90 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs shadow-sm">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="text-sm font-black text-amber-950 flex items-center gap-2">
+                <span>🔒 Yêu Cầu Đăng Nhập Gmail Để Sử Dụng Tính Năng AI</span>
+                <span className="px-2 py-0.5 bg-amber-200 text-amber-900 text-[10px] font-black rounded-md uppercase">
+                  Bắt buộc
+                </span>
+              </div>
+              <p className="text-xs text-amber-900/80 leading-relaxed">
+                Khi sử dụng lần đầu, bạn cần đăng nhập bằng địa chỉ Gmail của mình để hệ thống cá nhân hóa phản hồi học tập, lưu lịch sử trò chuyện và đồng bộ huy hiệu.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 shrink-0"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path
+                fill="#fff"
+                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17Z"
+              />
+              <path
+                fill="#fff"
+                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24Z"
+              />
+              <path
+                fill="#fff"
+                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"
+              />
+              <path
+                fill="#fff"
+                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"
+              />
+            </svg>
+            <span>Đăng nhập Gmail ngay</span>
+          </button>
+        </div>
+      )}
 
       {/* Sub Navigation Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -282,8 +445,8 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
               : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
           }`}
         >
-          <Bot className="w-4 h-4" />
-          <span>Trò chuyện cùng Trợ lý AI</span>
+          <MessageSquare className="w-4 h-4 text-indigo-400" />
+          <span>Trò Chuyện AI Học Đường</span>
         </button>
 
         <button
@@ -295,7 +458,7 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
           }`}
         >
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>Kiểm tra Tin giả & Lừa đảo</span>
+          <span>Kiểm Tra Tin Giả & Lừa Đảo</span>
         </button>
 
         <button
@@ -413,23 +576,43 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
               e.preventDefault();
               handleSendMessage();
             }}
-            className="p-3 sm:p-4 bg-white border-t border-slate-200 flex gap-2"
+            className="p-3 sm:p-4 bg-white border-t border-slate-200 flex gap-2 relative"
           >
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Nhập câu hỏi về kỹ năng số, an toàn mạng hoặc nhờ soạn bài..."
-              className="flex-1 bg-slate-100 focus:bg-white text-xs sm:text-sm px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-hidden text-slate-800"
-            />
-            <button
-              type="submit"
-              disabled={!inputMessage.trim() || isLoadingChat}
-              className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-colors shrink-0 shadow-xs"
-            >
-              <Send className="w-4 h-4" />
-              <span className="hidden sm:inline">Gửi câu hỏi</span>
-            </button>
+            {!isEmailVerified ? (
+              <div
+                onClick={() => {
+                  showToast("Vui lòng đăng nhập Gmail để trò chuyện cùng AI!", "warning");
+                  setIsAuthModalOpen(true);
+                }}
+                className="flex-1 bg-amber-50/70 hover:bg-amber-100/70 text-xs sm:text-sm px-4 py-3 rounded-2xl border border-amber-300 text-amber-900 cursor-pointer flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-amber-600" />
+                  <span>Vui lòng đăng nhập bằng Gmail để mở khóa gửi câu hỏi cho AI...</span>
+                </div>
+                <span className="px-3 py-1 bg-indigo-600 text-white font-bold rounded-xl text-xs">
+                  Đăng nhập Gmail
+                </span>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder={`Hỏi Trợ lý AI về kỹ năng số, bài tập, prompt... (Phiên: ${currentUser.email})`}
+                  className="flex-1 bg-slate-100 focus:bg-white text-xs sm:text-sm px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-hidden text-slate-800"
+                />
+                <button
+                  type="submit"
+                  disabled={!inputMessage.trim() || isLoadingChat}
+                  className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-colors shrink-0 shadow-xs"
+                >
+                  <Send className="w-4 h-4" />
+                  <span className="hidden sm:inline">Gửi câu hỏi</span>
+                </button>
+              </>
+            )}
           </form>
         </div>
       )}
@@ -792,7 +975,7 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
                   <div className="flex flex-wrap gap-1">
                     {p.tags.map((t, idx) => (
                       <span
@@ -804,26 +987,37 @@ Hãy chọn một câu hỏi gợi ý bên dưới hoặc nhập thắc mắc c�
                     ))}
                   </div>
 
-                  <button
-                    onClick={() => handleCopyPrompt(p.prompt, p.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      copiedPromptId === p.id
-                        ? "bg-emerald-600 text-white"
-                        : "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200"
-                    }`}
-                  >
-                    {copiedPromptId === p.id ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Đã copy!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy Prompt</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleUsePromptInChat(p.prompt)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all"
+                      title="Chuyển sang khung chat AI với Prompt này"
+                    >
+                      <Bot className="w-3.5 h-3.5" />
+                      <span>Thử Với AI</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleCopyPrompt(p.prompt, p.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        copiedPromptId === p.id
+                          ? "bg-emerald-600 text-white"
+                          : "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200"
+                      }`}
+                    >
+                      {copiedPromptId === p.id ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Đã copy!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy Prompt</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

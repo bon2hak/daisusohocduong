@@ -196,13 +196,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const saved = localStorage.getItem("daisu_is_authenticated");
-    return saved ? JSON.parse(saved) : true;
+    if (saved !== null) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return false;
+      }
+    }
+    return false; // Default to false on first-time visit
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAccountSettingsModalOpen, setIsAccountSettingsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<NavTab>("home");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  // First time visit trigger for Gmail Login
+  useEffect(() => {
+    const savedAuth = localStorage.getItem("daisu_is_authenticated");
+    const hasVisited = localStorage.getItem("daisu_has_visited");
+    if (!hasVisited || savedAuth === "false" || savedAuth === null) {
+      const timer = setTimeout(() => {
+        setIsAuthModalOpen(true);
+        localStorage.setItem("daisu_has_visited", "true");
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const [posts, setPosts] = useState<Post[]>(() => {
     const saved = localStorage.getItem("daisu_posts");
