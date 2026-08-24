@@ -66,6 +66,8 @@ async function startServer() {
         emailPermissions: Array.isArray(incoming.emailPermissions) && incoming.emailPermissions.length > 0 ? incoming.emailPermissions : current.emailPermissions,
         leaderboard: Array.isArray(incoming.leaderboard) && incoming.leaderboard.length > 0 ? incoming.leaderboard : current.leaderboard,
         events: Array.isArray(incoming.events) && incoming.events.length > 0 ? incoming.events : current.events,
+        advisors: Array.isArray(incoming.advisors) && incoming.advisors.length > 0 ? incoming.advisors : current.advisors,
+        userProfiles: incoming.userProfiles && typeof incoming.userProfiles === "object" ? { ...current.userProfiles, ...incoming.userProfiles } : current.userProfiles,
       };
 
       const saved = saveStore(mergedData);
@@ -280,6 +282,167 @@ async function startServer() {
       res.json({ success: true, permissions: updatedPerms });
     } catch (err: any) {
       res.status(500).json({ error: "Lỗi xóa phân quyền", details: err?.message });
+    }
+  });
+
+  // --- ADVISORS & BAN QUẢN TRỊ PROFILE SYNCHRONIZATION ---
+  app.get("/api/advisors", (_req, res) => {
+    try {
+      const store = loadStore();
+      res.json({ success: true, advisors: store.advisors });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi tải danh sách ban cố vấn", details: err?.message });
+    }
+  });
+
+  app.put("/api/advisors/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      const store = loadStore();
+      const idx = store.advisors.findIndex((a) => a.id === id);
+      
+      let updatedAdvisors = [...store.advisors];
+      let updatedAdvisor: any;
+      
+      if (idx !== -1) {
+        updatedAdvisor = { ...store.advisors[idx], ...updateData };
+        updatedAdvisors[idx] = updatedAdvisor;
+      } else {
+        updatedAdvisor = { ...updateData, id };
+        updatedAdvisors.push(updatedAdvisor);
+      }
+
+      // Also sync user profile override if advisor has contactEmail
+      const email = updatedAdvisor.contactEmail ? updatedAdvisor.contactEmail.toLowerCase() : "";
+      const userProfiles = { ...store.userProfiles };
+      if (email) {
+        userProfiles[email] = {
+          ...(userProfiles[email] || {}),
+          name: updatedAdvisor.name,
+          avatar: updatedAdvisor.avatar,
+          roleTitle: updatedAdvisor.role,
+          clubRole: updatedAdvisor.role,
+        };
+      }
+
+      saveStore({ advisors: updatedAdvisors, userProfiles });
+      res.json({ success: true, advisor: updatedAdvisor, advisors: updatedAdvisors });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi cập nhật ban cố vấn", details: err?.message });
+    }
+  });
+
+  // Universal profile update & avatar persistence endpoint
+  app.post("/api/profile", (req, res) => {
+    try {
+      const profile = req.body;
+      if (!profile) {
+        return res.status(400).json({ error: "Thiếu dữ liệu hồ sơ" });
+      }
+
+      const email = (profile.email || "").toLowerCase().trim();
+      const store = loadStore();
+      const userProfiles = { ...store.userProfiles };
+
+      if (email) {
+        userProfiles[email] = {
+          ...(userProfiles[email] || {}),
+          ...profile,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+
+      // 1. If user is in advisors / ban quản trị, update advisor card avatar & details
+      let updatedAdvisors = [...store.advisors];
+      let advisorUpdated = false;
+
+      updatedAdvisors = updatedAdvisors.map((adv) => {
+        const advEmail = (adv.contactEmail || "").toLowerCase().trim();
+        const matchesEmail = email && advEmail && (advEmail === email || (email === "bon2beaking2@gmail.com" && adv.id === "advisor_01"));
+        const matchesName = profile.name && adv.name && (adv.name.toLowerCase() === profile.name.toLowerCase());
+        const matchesId = profile.advisorId && adv.id === profile.advisorId;
+
+        if (matchesEmail || matchesName || matchesId) {
+          advisorUpdated = true;
+          return {
+            ...adv,
+            avatar: profile.avatar || adv.avatar,
+            name: profile.name || adv.name,
+            role: profile.clubRole || adv.role,
+            bio: profile.bio || adv.bio,
+            contactEmail: profile.email || adv.contactEmail,
+          };
+        }
+        return adv;
+      });
+
+      // 2. If user is in email permissions, update email permissions avatar/name
+      let updatedEmailPerms = [...store.emailPermissions];
+      if (email) {
+        updatedEmailPerms = updatedEmailPerms.map((perm) => {
+          if (perm.email.toLowerCase() === email) {
+            return {
+              ...perm,
+              name: profile.name || perm.name,
+              clubRole: profile.clubRole || perm.clubRole,
+              classroom: profile.classroom || perm.classroom,
+              clubDuties: profile.clubDuties || perm.clubDuties,
+            };
+          }
+          return perm;
+        });
+      }
+
+      // 3. Update author info across posts if user has posted
+      let updatedPosts = [...store.posts];
+      if (profile.avatar || profile.name) {
+        updatedPosts = updatedPosts.map((p) => {
+          if (
+            (profile.id && p.authorId === profile.id) ||
+            (email && p.authorId === email) ||
+            (profile.name && p.authorName === profile.name)
+          ) {
+            return {
+              ...p,
+              authorName: profile.name || p.authorName,
+              authorAvatar: profile.avatar || p.authorAvatar,
+            };
+          }
+          return p;
+        });
+      }
+
+      // 4. Update student works author avatar if matching
+      let updatedWorks = [...store.studentWorks];
+      if (profile.avatar || profile.name) {
+        updatedWorks = updatedWorks.map((w) => {
+          if (profile.name && w.authorName === profile.name) {
+            return {
+              ...w,
+              authorAvatar: profile.avatar || w.authorAvatar,
+            };
+          }
+          return w;
+        });
+      }
+
+      const saved = saveStore({
+        userProfiles,
+        advisors: updatedAdvisors,
+        emailPermissions: updatedEmailPerms,
+        posts: updatedPosts,
+        studentWorks: updatedWorks,
+      });
+
+      res.json({
+        success: true,
+        message: "Hồ sơ và ảnh đại diện đã được lưu & đồng bộ toàn hệ thống",
+        profile,
+        advisors: saved.advisors,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi cập nhật hồ sơ", details: err?.message });
     }
   });
 

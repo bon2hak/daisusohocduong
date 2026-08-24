@@ -23,6 +23,7 @@ import {
   AIToolItem,
   EmailPermission,
   SavedGoogleAccount,
+  ClubAdvisor,
 } from "../types";
 import {
   MOCK_USERS,
@@ -36,6 +37,7 @@ import {
   INITIAL_PROMPTS,
   INITIAL_AI_TOOLS,
   INITIAL_EMAIL_PERMISSIONS,
+  CLUB_ADVISORY_BOARD,
 } from "../data/initialData";
 
 export const INITIAL_SAVED_GOOGLE_ACCOUNTS: SavedGoogleAccount[] = [
@@ -254,6 +256,10 @@ interface AppContextType {
   selectedVideoForPlay: VideoItem | null;
   setSelectedVideoForPlay: (video: VideoItem | null) => void;
 
+  // Ban Cố Vấn & Ban Quản Trị CLB
+  advisors: ClubAdvisor[];
+  updateAdvisor: (id: string, data: Partial<ClubAdvisor>) => void;
+
   // Global editing modal triggers
   editingPost: Post | null;
   setEditingPost: (post: Post | null) => void;
@@ -387,6 +393,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_EMAIL_PERMISSIONS;
   });
 
+  const [advisors, setAdvisors] = useState<ClubAdvisor[]>(() => {
+    const saved = localStorage.getItem("daisu_advisors");
+    return saved ? JSON.parse(saved) : CLUB_ADVISORY_BOARD;
+  });
+
   // Real-time Cloud Synchronization via Firebase Firestore & Server Backup
   useEffect(() => {
     let isMounted = true;
@@ -395,6 +406,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let unsubscribePosts: (() => void) | null = null;
     let unsubscribeWorks: (() => void) | null = null;
     let unsubscribePerms: (() => void) | null = null;
+    let unsubscribeAdvisors: (() => void) | null = null;
+    let unsubscribeProfiles: (() => void) | null = null;
 
     try {
       // Real-time Posts
@@ -460,6 +473,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.warn("Firestore permissions listener notice:", error);
         }
       );
+
+      // Real-time Advisory Board (Ban Quản Trị / Cố Vấn)
+      const advisorsCol = collection(db, "advisors");
+      unsubscribeAdvisors = onSnapshot(
+        advisorsCol,
+        (snapshot) => {
+          if (!snapshot.empty && isMounted) {
+            const remoteAdvisors: ClubAdvisor[] = [];
+            snapshot.forEach((docSnap) => {
+              remoteAdvisors.push(docSnap.data() as ClubAdvisor);
+            });
+            setAdvisors(remoteAdvisors);
+            try {
+              localStorage.setItem("daisu_advisors", JSON.stringify(remoteAdvisors));
+            } catch {}
+          }
+        },
+        (error) => {
+          console.warn("Firestore advisors listener notice:", error);
+        }
+      );
+
+      // Real-time User Profiles Overrides
+      const userProfilesCol = collection(db, "user_profiles");
+      unsubscribeProfiles = onSnapshot(
+        userProfilesCol,
+        (snapshot) => {
+          if (!snapshot.empty && isMounted) {
+            snapshot.forEach((docSnap) => {
+              const profileData = docSnap.data();
+              const email = (profileData.email || docSnap.id).toLowerCase();
+              if (email) {
+                setRegisteredProfiles((prev) => {
+                  const next = { ...prev, [email]: { ...prev[email], ...profileData } };
+                  try {
+                    localStorage.setItem("daisu_registered_profiles", JSON.stringify(next));
+                  } catch {}
+                  return next;
+                });
+              }
+            });
+          }
+        },
+        (error) => {
+          console.warn("Firestore profiles listener notice:", error);
+        }
+      );
     } catch (e) {
       console.warn("Firestore initialization notice:", e);
     }
@@ -515,6 +575,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               setEvents(d.events);
               localStorage.setItem("daisu_events", JSON.stringify(d.events));
             }
+            if (Array.isArray(d.advisors) && d.advisors.length > 0) {
+              setAdvisors(d.advisors);
+              localStorage.setItem("daisu_advisors", JSON.stringify(d.advisors));
+            }
+            if (d.userProfiles && typeof d.userProfiles === "object") {
+              setRegisteredProfiles((prev) => {
+                const next = { ...prev, ...d.userProfiles };
+                localStorage.setItem("daisu_registered_profiles", JSON.stringify(next));
+                return next;
+              });
+            }
           }
         }
       } catch (err) {
@@ -540,6 +611,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (unsubscribePosts) unsubscribePosts();
       if (unsubscribeWorks) unsubscribeWorks();
       if (unsubscribePerms) unsubscribePerms();
+      if (unsubscribeAdvisors) unsubscribeAdvisors();
+      if (unsubscribeProfiles) unsubscribeProfiles();
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleFocus);
       clearInterval(interval);
@@ -1096,9 +1169,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast("Đã đăng xuất tài khoản. Bạn đang ở chế độ xem khách.", "info");
   };
 
+  const updateAdvisor = (id: string, data: Partial<ClubAdvisor>) => {
+    let updatedAdvisor: ClubAdvisor | undefined;
+    setAdvisors((prev) => {
+      const updated = prev.map((a) => {
+        if (a.id === id) {
+          updatedAdvisor = { ...a, ...data };
+          return updatedAdvisor;
+        }
+        return a;
+      });
+      localStorage.setItem("daisu_advisors", JSON.stringify(updated));
+      return updated;
+    });
+
+    if (updatedAdvisor) {
+      // Save to Firestore
+      try {
+        setDoc(doc(db, "advisors", id), updatedAdvisor, { merge: true }).catch((err) => {
+          console.warn("Firestore advisor save notice:", err);
+        });
+      } catch (err) {}
+
+      // Save to Server
+      fetch(`/api/advisors/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).catch((err) => {
+        console.warn("Server advisor save error:", err);
+      });
+    }
+    showToast("Đã lưu và cập nhật ảnh đại diện Ban Cố vấn lên toàn hệ thống thành công!", "success");
+  };
+
   const updateUserProfile = (data: Partial<UserProfile>) => {
+    let updatedUserObj: UserProfile | null = null;
     setCurrentUser((prev) => {
       const updated = { ...prev, ...data };
+      updatedUserObj = updated;
       if (data.role && data.role !== prev.role) {
         setCurrentRole(data.role);
       }
@@ -1106,22 +1215,202 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return updated;
     });
 
-    // Also update author info across existing items if author matches
-    if (data.name || data.avatar) {
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.authorId === currentUser.id
-            ? {
-                ...p,
-                authorName: data.name || p.authorName,
-                authorAvatar: data.avatar || p.authorAvatar,
-              }
-            : p
-        )
-      );
+    const userEmail = (data.email || currentUser.email || "").toLowerCase().trim();
+    const userName = data.name || currentUser.name;
+    const userAvatar = data.avatar || currentUser.avatar;
+
+    // 1. Sync to registered profiles & saved Google accounts
+    if (userEmail) {
+      setRegisteredProfiles((prev) => {
+        const next = {
+          ...prev,
+          [userEmail]: {
+            ...(prev[userEmail] || {}),
+            name: userName,
+            email: userEmail,
+            role: data.role || currentUser.role,
+            roleTitle: data.roleTitle || currentUser.roleTitle,
+            accountType: data.accountType || currentUser.accountType,
+            classroom: data.classroom || currentUser.classroom,
+            clubRole: data.clubRole || currentUser.clubRole,
+            clubDuties: data.clubDuties || currentUser.clubDuties,
+            avatar: userAvatar,
+            bio: data.bio || currentUser.bio,
+          },
+        };
+        localStorage.setItem("daisu_registered_profiles", JSON.stringify(next));
+        return next;
+      });
+
+      setSavedGoogleAccounts((prev) => {
+        const next = prev.map((acc) => {
+          if (acc.email.toLowerCase() === userEmail) {
+            return {
+              ...acc,
+              name: userName,
+              avatar: userAvatar,
+              classroom: data.classroom || acc.classroom,
+              clubRole: data.clubRole || acc.clubRole,
+              clubDuties: data.clubDuties || acc.clubDuties,
+              role: data.role || acc.role,
+              roleTitle: data.roleTitle || acc.roleTitle,
+            };
+          }
+          return acc;
+        });
+        localStorage.setItem("daisu_saved_google_accounts", JSON.stringify(next));
+        return next;
+      });
     }
 
-    showToast("Đã lưu thông tin tài khoản và cập nhật ảnh đại diện thành công!", "success");
+    // 2. Synchronize with Advisory Board (Ban Quản Trị / Ban Cố Vấn)
+    let matchedAdvisorId: string | null = null;
+    setAdvisors((prev) => {
+      const next = prev.map((adv) => {
+        const advEmail = (adv.contactEmail || "").toLowerCase().trim();
+        const isMatch =
+          (userEmail && (advEmail === userEmail || (userEmail === "bon2beaking2@gmail.com" && adv.id === "advisor_01"))) ||
+          (userName && adv.name && (adv.name.toLowerCase() === userName.toLowerCase()));
+
+        if (isMatch) {
+          matchedAdvisorId = adv.id;
+          const updatedAdv = {
+            ...adv,
+            avatar: userAvatar || adv.avatar,
+            name: userName || adv.name,
+            role: data.clubRole || adv.role,
+            bio: data.bio || adv.bio,
+            contactEmail: userEmail || adv.contactEmail,
+          };
+
+          // Save to Firestore
+          try {
+            setDoc(doc(db, "advisors", adv.id), updatedAdv, { merge: true }).catch(() => {});
+          } catch {}
+
+          return updatedAdv;
+        }
+        return adv;
+      });
+      localStorage.setItem("daisu_advisors", JSON.stringify(next));
+      return next;
+    });
+
+    // 3. Update Email Permissions if present
+    if (userEmail) {
+      setEmailPermissions((prev) => {
+        const next = prev.map((p) => {
+          if (p.email.toLowerCase() === userEmail) {
+            const updatedPerm = {
+              ...p,
+              name: userName || p.name,
+              clubRole: data.clubRole || p.clubRole,
+              classroom: data.classroom || p.classroom,
+              clubDuties: data.clubDuties || p.clubDuties,
+            };
+            try {
+              setDoc(doc(db, "email_permissions", p.id), updatedPerm, { merge: true }).catch(() => {});
+            } catch {}
+            return updatedPerm;
+          }
+          return p;
+        });
+        localStorage.setItem("daisu_email_permissions", JSON.stringify(next));
+        return next;
+      });
+    }
+
+    // 4. Update posts & works author avatars
+    if (userAvatar || userName) {
+      setPosts((prev) => {
+        const updatedPosts = prev.map((p) => {
+          if (
+            p.authorId === currentUser.id ||
+            (userEmail && p.authorId === userEmail) ||
+            p.authorName === currentUser.name
+          ) {
+            const up = {
+              ...p,
+              authorName: userName || p.authorName,
+              authorAvatar: userAvatar || p.authorAvatar,
+            };
+            try {
+              setDoc(doc(db, "posts", p.id), up, { merge: true }).catch(() => {});
+            } catch {}
+            return up;
+          }
+          return p;
+        });
+        localStorage.setItem("daisu_posts", JSON.stringify(updatedPosts));
+        return updatedPosts;
+      });
+
+      setStudentWorks((prev) => {
+        const updatedWorks = prev.map((w) => {
+          if (w.authorName === currentUser.name || (userName && w.authorName === userName)) {
+            const uw = {
+              ...w,
+              authorAvatar: userAvatar || w.authorAvatar,
+              authorName: userName || w.authorName,
+            };
+            try {
+              setDoc(doc(db, "student_works", w.id), uw, { merge: true }).catch(() => {});
+            } catch {}
+            return uw;
+          }
+          return w;
+        });
+        localStorage.setItem("daisu_works", JSON.stringify(updatedWorks));
+        return updatedWorks;
+      });
+    }
+
+    // 5. Persist to Firestore user_profiles collection
+    if (userEmail) {
+      try {
+        const profileDoc = {
+          name: userName,
+          email: userEmail,
+          avatar: userAvatar,
+          role: data.role || currentUser.role,
+          roleTitle: data.roleTitle || currentUser.roleTitle,
+          accountType: data.accountType || currentUser.accountType,
+          classroom: data.classroom || currentUser.classroom,
+          clubRole: data.clubRole || currentUser.clubRole,
+          clubDuties: data.clubDuties || currentUser.clubDuties,
+          bio: data.bio || currentUser.bio,
+          updatedAt: new Date().toISOString(),
+        };
+        const docKey = userEmail.replace(/[@.]/g, "_");
+        setDoc(doc(db, "user_profiles", docKey), profileDoc, { merge: true }).catch((err) => {
+          console.warn("Firestore user profile save notice:", err);
+        });
+      } catch (err) {}
+    }
+
+    // 6. Persist to Server API /api/profile
+    fetch("/api/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: currentUser.id,
+        name: userName,
+        email: userEmail,
+        avatar: userAvatar,
+        role: data.role || currentUser.role,
+        roleTitle: data.roleTitle || currentUser.roleTitle,
+        accountType: data.accountType || currentUser.accountType,
+        classroom: data.classroom || currentUser.classroom,
+        clubRole: data.clubRole || currentUser.clubRole,
+        clubDuties: data.clubDuties || currentUser.clubDuties,
+        bio: data.bio || currentUser.bio,
+        advisorId: matchedAdvisorId,
+      }),
+    }).catch((err) => {
+      console.warn("Server profile save notice:", err);
+    });
+
+    showToast("Đã lưu thông tin tài khoản và cập nhật ảnh đại diện lên toàn hệ thống thành công!", "success");
   };
 
   // Persist items
@@ -1993,6 +2282,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginWithEmail,
         logout,
         updateUserProfile,
+
+        // Ban Cố Vấn & Ban Quản Trị CLB
+        advisors,
+        updateAdvisor,
 
         // Modals & Active Edit Entities
         isCreatePostModalOpen,
