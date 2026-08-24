@@ -291,12 +291,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_EMAIL_PERMISSIONS;
   });
 
-  // Fetch Centralized Data from Server on Mount
+  // Fetch Centralized Data from Server on Mount & on Window Focus
   useEffect(() => {
+    let isMounted = true;
+
     const fetchServerData = async () => {
       try {
-        const res = await fetch("/api/data");
-        if (res.ok) {
+        const res = await fetch("/api/data", { cache: "no-store" });
+        if (res.ok && isMounted) {
           const json = await res.json();
           if (json.success && json.data) {
             const d = json.data;
@@ -332,25 +334,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               setEmailPermissions(d.emailPermissions);
               localStorage.setItem("daisu_email_permissions", JSON.stringify(d.emailPermissions));
             }
-
-            // If server had no posts yet, seed current defaults to server
-            if (!Array.isArray(d.posts) || d.posts.length === 0) {
-              fetch("/api/data/sync", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  posts: INITIAL_POSTS,
-                  digitalSkills: DIGITAL_SKILLS_MODULES,
-                  studentWorks: INITIAL_STUDENT_WORKS,
-                  videos: INITIAL_VIDEOS,
-                  documents: INITIAL_DOCUMENTS,
-                  aiPrompts: INITIAL_PROMPTS,
-                  aiTools: INITIAL_AI_TOOLS,
-                  emailPermissions: INITIAL_EMAIL_PERMISSIONS,
-                  leaderboard: INITIAL_LEADERBOARD,
-                  events: INITIAL_EVENTS,
-                }),
-              }).catch(() => {});
+            if (Array.isArray(d.leaderboard) && d.leaderboard.length > 0) {
+              setLeaderboard(d.leaderboard);
+              localStorage.setItem("daisu_leaderboard", JSON.stringify(d.leaderboard));
+            }
+            if (Array.isArray(d.events) && d.events.length > 0) {
+              setEvents(d.events);
+              localStorage.setItem("daisu_events", JSON.stringify(d.events));
             }
           }
         }
@@ -360,6 +350,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     fetchServerData();
+
+    // Auto sync when user switches tab or focuses browser window
+    const handleFocus = () => {
+      fetchServerData();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    // Periodic background sync every 8 seconds
+    const interval = setInterval(fetchServerData, 8000);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+      clearInterval(interval);
+    };
   }, []);
 
   // Handle URL Deep-Linking (Direct Link Sharing for Posts, Works, Skills)
@@ -934,8 +942,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updatePost = (postId: string, postData: Partial<Post>) => {
     let updatedTarget: Post | null = null;
-    setPosts((prev) =>
-      prev.map((p) => {
+    setPosts((prev) => {
+      const nextPosts = prev.map((p) => {
         if (p.id === postId) {
           const updated = { ...p, ...postData };
           updatedTarget = updated;
@@ -945,23 +953,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return updated;
         }
         return p;
-      })
-    );
+      });
+      try {
+        localStorage.setItem("daisu_posts", JSON.stringify(nextPosts));
+      } catch {}
+      return nextPosts;
+    });
 
     // Save to Server
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(postData),
+      body: JSON.stringify(updatedTarget || postData),
     }).catch((err) => console.error("Error updating post on server:", err));
 
     showToast("Đã lưu và cập nhật bài viết lên toàn hệ thống thành công!", "success");
   };
 
   const approvePost = (postId: string) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, status: "published" } : p))
-    );
+    setPosts((prev) => {
+      const updated = prev.map((p) => (p.id === postId ? { ...p, status: "published" as const } : p));
+      try {
+        localStorage.setItem("daisu_posts", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -971,11 +987,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const rejectPost = (postId: string, reason: string) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId ? { ...p, status: "rejected", rejectReason: reason } : p
-      )
-    );
+    setPosts((prev) => {
+      const updated = prev.map((p) =>
+        p.id === postId ? { ...p, status: "rejected" as const, rejectReason: reason } : p
+      );
+      try {
+        localStorage.setItem("daisu_posts", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -986,7 +1006,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deletePost = (postId: string) => {
     const target = posts.find((p) => p.id === postId);
-    setPosts((prev) => prev.filter((p) => p.id !== postId));
+    setPosts((prev) => {
+      const updated = prev.filter((p) => p.id !== postId);
+      try {
+        localStorage.setItem("daisu_posts", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     if (activePostDetail && activePostDetail.id === postId) {
       setActivePostDetail(null);
     }
@@ -995,9 +1021,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const unpublishPost = (postId: string) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, status: "pending_review" } : p))
-    );
+    setPosts((prev) => {
+      const updated = prev.map((p) => (p.id === postId ? { ...p, status: "pending_review" as const } : p));
+      try {
+        localStorage.setItem("daisu_posts", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     if (activePostDetail && activePostDetail.id === postId) {
       setActivePostDetail((prev) => (prev ? { ...prev, status: "pending_review" } : null));
     }
@@ -1012,8 +1042,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 2. GÓC HỌC SINH (STUDENT WORKS)
   const voteWork = (workId: string) => {
     let updatedWork: StudentWork | null = null;
-    setStudentWorks((prev) =>
-      prev.map((w) => {
+    setStudentWorks((prev) => {
+      const updatedList = prev.map((w) => {
         if (w.id === workId) {
           const isVoted = !w.isVotedByUser;
           const updated = {
@@ -1028,8 +1058,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return updated;
         }
         return w;
-      })
-    );
+      });
+      try {
+        localStorage.setItem("daisu_works", JSON.stringify(updatedList));
+      } catch {}
+      return updatedList;
+    });
 
     if (updatedWork) {
       fetch(`/api/student-works/${workId}`, {
@@ -1071,7 +1105,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       award: work.award,
     };
 
-    setStudentWorks((prev) => [newWork, ...prev]);
+    setStudentWorks((prev) => {
+      const updated = [newWork, ...prev];
+      try {
+        localStorage.setItem("daisu_works", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     // Save to Server
     fetch("/api/student-works", {
@@ -1085,23 +1125,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateStudentWork = (workId: string, workData: Partial<StudentWork>) => {
-    setStudentWorks((prev) =>
-      prev.map((w) => {
+    let updatedWorkObj: StudentWork | null = null;
+    setStudentWorks((prev) => {
+      const updatedList = prev.map((w) => {
         if (w.id === workId) {
           const updated = { ...w, ...workData };
+          updatedWorkObj = updated;
           if (selectedWorkForView?.id === workId) {
             setSelectedWorkForView(updated);
           }
           return updated;
         }
         return w;
-      })
-    );
+      });
+      try {
+        localStorage.setItem("daisu_works", JSON.stringify(updatedList));
+      } catch {}
+      return updatedList;
+    });
 
     fetch(`/api/student-works/${workId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(workData),
+      body: JSON.stringify(updatedWorkObj || workData),
     }).catch(() => {});
 
     showToast("Đã cập nhật tác phẩm Góc học sinh trên toàn hệ thống!", "success");
@@ -1109,7 +1155,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteStudentWork = (workId: string) => {
     const target = studentWorks.find((w) => w.id === workId);
-    setStudentWorks((prev) => prev.filter((w) => w.id !== workId));
+    setStudentWorks((prev) => {
+      const updated = prev.filter((w) => w.id !== workId);
+      try {
+        localStorage.setItem("daisu_works", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     if (selectedWorkForView?.id === workId) {
       setSelectedWorkForView(null);
     }
