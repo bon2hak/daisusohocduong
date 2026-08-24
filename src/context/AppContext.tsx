@@ -218,6 +218,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAccountSettingsModalOpen, setIsAccountSettingsModalOpen] = useState(false);
+  const [isEmailPermissionModalOpen, setIsEmailPermissionModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<NavTab>("home");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -285,6 +286,112 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_LEADERBOARD;
   });
 
+  const [emailPermissions, setEmailPermissions] = useState<EmailPermission[]>(() => {
+    const saved = localStorage.getItem("daisu_email_permissions");
+    return saved ? JSON.parse(saved) : INITIAL_EMAIL_PERMISSIONS;
+  });
+
+  // Fetch Centralized Data from Server on Mount
+  useEffect(() => {
+    const fetchServerData = async () => {
+      try {
+        const res = await fetch("/api/data");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            const d = json.data;
+            if (Array.isArray(d.posts) && d.posts.length > 0) {
+              setPosts(d.posts);
+              localStorage.setItem("daisu_posts", JSON.stringify(d.posts));
+            }
+            if (Array.isArray(d.studentWorks) && d.studentWorks.length > 0) {
+              setStudentWorks(d.studentWorks);
+              localStorage.setItem("daisu_works", JSON.stringify(d.studentWorks));
+            }
+            if (Array.isArray(d.digitalSkills) && d.digitalSkills.length > 0) {
+              setDigitalSkills(d.digitalSkills);
+              localStorage.setItem("daisu_skills", JSON.stringify(d.digitalSkills));
+            }
+            if (Array.isArray(d.videos) && d.videos.length > 0) {
+              setVideos(d.videos);
+              localStorage.setItem("daisu_videos", JSON.stringify(d.videos));
+            }
+            if (Array.isArray(d.documents) && d.documents.length > 0) {
+              setDocuments(d.documents);
+              localStorage.setItem("daisu_docs", JSON.stringify(d.documents));
+            }
+            if (Array.isArray(d.aiPrompts) && d.aiPrompts.length > 0) {
+              setAiPrompts(d.aiPrompts);
+              localStorage.setItem("daisu_ai_prompts", JSON.stringify(d.aiPrompts));
+            }
+            if (Array.isArray(d.aiTools) && d.aiTools.length > 0) {
+              setAiTools(d.aiTools);
+              localStorage.setItem("daisu_ai_tools", JSON.stringify(d.aiTools));
+            }
+            if (Array.isArray(d.emailPermissions) && d.emailPermissions.length > 0) {
+              setEmailPermissions(d.emailPermissions);
+              localStorage.setItem("daisu_email_permissions", JSON.stringify(d.emailPermissions));
+            }
+
+            // If server had no posts yet, seed current defaults to server
+            if (!Array.isArray(d.posts) || d.posts.length === 0) {
+              fetch("/api/data/sync", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  posts: INITIAL_POSTS,
+                  digitalSkills: DIGITAL_SKILLS_MODULES,
+                  studentWorks: INITIAL_STUDENT_WORKS,
+                  videos: INITIAL_VIDEOS,
+                  documents: INITIAL_DOCUMENTS,
+                  aiPrompts: INITIAL_PROMPTS,
+                  aiTools: INITIAL_AI_TOOLS,
+                  emailPermissions: INITIAL_EMAIL_PERMISSIONS,
+                  leaderboard: INITIAL_LEADERBOARD,
+                  events: INITIAL_EVENTS,
+                }),
+              }).catch(() => {});
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Backend data fetch fallback to local cache:", err);
+      }
+    };
+
+    fetchServerData();
+  }, []);
+
+  // Handle URL Deep-Linking (Direct Link Sharing for Posts, Works, Skills)
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const postIdParam = urlParams.get("post") || urlParams.get("postId");
+      const workIdParam = urlParams.get("work") || urlParams.get("workId");
+      const tabParam = urlParams.get("tab") as NavTab | null;
+
+      if (tabParam) {
+        setActiveTab(tabParam);
+      }
+
+      if (postIdParam) {
+        const found = posts.find((p) => p.id === postIdParam || p.slug === postIdParam);
+        if (found) {
+          setActivePostDetail(found);
+          if (!tabParam) setActiveTab("blog");
+        }
+      }
+
+      if (workIdParam) {
+        const foundWork = studentWorks.find((w) => w.id === workIdParam);
+        if (foundWork) {
+          setSelectedWorkForView(foundWork);
+          if (!tabParam) setActiveTab("student-corner");
+        }
+      }
+    } catch {}
+  }, [posts, studentWorks]);
+
   const [activePostDetail, setActivePostDetail] = useState<Post | null>(null);
   const [selectedWorkForView, setSelectedWorkForView] = useState<StudentWork | null>(null);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
@@ -323,24 +430,112 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Đã chuyển sang vai trò: ${mockU.roleTitle}`, "info");
   };
 
-  // Auth Handlers
+  // Email Role-Based Access Control (RBAC) Management
+  const findPermissionByEmail = (email: string): EmailPermission | undefined => {
+    if (!email) return undefined;
+    return emailPermissions.find(
+      (p) => p.email.toLowerCase() === email.toLowerCase() && p.status === "active"
+    );
+  };
+
+  const addEmailPermission = (permData: Omit<EmailPermission, "id" | "grantedAt">) => {
+    const newPerm: EmailPermission = {
+      ...permData,
+      id: "perm_" + Date.now().toString().slice(-5),
+      grantedAt: new Date().toLocaleDateString("vi-VN"),
+      status: permData.status || "active",
+    };
+
+    setEmailPermissions((prev) => {
+      const existingIdx = prev.findIndex(
+        (p) => p.email.toLowerCase() === newPerm.email.toLowerCase()
+      );
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = newPerm;
+        return updated;
+      }
+      return [...prev, newPerm];
+    });
+
+    // Sync to Server
+    fetch("/api/permissions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newPerm),
+    }).catch((err) => console.error("Error saving permission to server:", err));
+  };
+
+  const updateEmailPermission = (id: string, data: Partial<EmailPermission>) => {
+    setEmailPermissions((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...data } : p))
+    );
+
+    const target = emailPermissions.find((p) => p.id === id);
+    if (target) {
+      fetch("/api/permissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...target, ...data }),
+      }).catch((err) => console.error("Error updating permission on server:", err));
+    }
+  };
+
+  const deleteEmailPermission = (id: string) => {
+    setEmailPermissions((prev) => prev.filter((p) => p.id !== id));
+
+    fetch(`/api/permissions/${id}`, {
+      method: "DELETE",
+    }).catch((err) => console.error("Error deleting permission on server:", err));
+  };
+
+  // Auth Handlers with Email Permission Verification
   const loginWithGoogle = (customData?: Partial<UserProfile>) => {
+    const email = (customData?.email || "an.nguyen@gmail.com").toLowerCase();
+    const matchedPerm = findPermissionByEmail(email);
+
+    let assignedRole: UserRole = "ambassador";
+    let assignedRoleTitle = "Đại sứ số Học đường";
+    let assignedClubRole = "Thành viên Ban Truyền thông & Sáng tạo";
+    let assignedClubDuties = "Tuyên truyền kỹ năng số, thiết kế ấn phẩm và chia sẻ kinh nghiệm AI";
+    let assignedClassroom = customData?.classroom || "Lớp 8A";
+    let assignedAccountType: "student" | "teacher" = customData?.accountType || "student";
+
+    if (matchedPerm) {
+      // Recognized from official permission table
+      assignedRole = matchedPerm.role;
+      assignedRoleTitle = matchedPerm.roleTitle;
+      assignedClubRole = matchedPerm.clubRole || assignedRoleTitle;
+      assignedClubDuties = matchedPerm.clubDuties || assignedClubDuties;
+      assignedClassroom = matchedPerm.classroom || assignedClassroom;
+      assignedAccountType = matchedPerm.accountType || "student";
+    } else {
+      // Not in special table: give regular student or member teacher role
+      if (customData?.accountType === "teacher" || email.includes("detham.edu.vn")) {
+        assignedRole = "teacher";
+        assignedRoleTitle = "Giáo viên Cố vấn CLB";
+        assignedAccountType = "teacher";
+        assignedClubRole = "Thành viên Hội đồng Cố vấn";
+        assignedClassroom = "Tổ Chuyên môn";
+      } else {
+        assignedRole = "student";
+        assignedRoleTitle = "Học sinh Thành viên CLB";
+        assignedAccountType = "student";
+        assignedClubRole = "Học sinh Tham gia CLB";
+        assignedClassroom = customData?.classroom || "Lớp 8A";
+      }
+    }
+
     const defaultGoogleUser: UserProfile = {
       id: "google_user_" + Date.now().toString().slice(-4),
-      name: customData?.name || "Nguyễn Văn An",
-      email: customData?.email || "an.nguyen@gmail.com",
-      role: customData?.role || (customData?.accountType === "teacher" ? "teacher" : "ambassador"),
-      roleTitle:
-        customData?.roleTitle ||
-        (customData?.accountType === "teacher"
-          ? "Giáo viên Cố vấn CLB"
-          : "Đại sứ số Học đường"),
-      accountType: customData?.accountType || "student",
-      clubRole: customData?.clubRole || "Thành viên Ban Truyền thông & Sáng tạo",
-      clubDuties:
-        customData?.clubDuties ||
-        "Tuyên truyền kỹ năng số, thiết kế ấn phẩm và chia sẻ kinh nghiệm AI",
-      classroom: customData?.classroom || "Lớp 8A",
+      name: customData?.name || (matchedPerm ? matchedPerm.name : "Nguyễn Văn An"),
+      email: email,
+      role: assignedRole,
+      roleTitle: assignedRoleTitle,
+      accountType: assignedAccountType,
+      clubRole: assignedClubRole,
+      clubDuties: assignedClubDuties,
+      classroom: assignedClassroom,
       avatar:
         customData?.avatar ||
         "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
@@ -348,7 +543,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       points: customData?.points || 650,
       bio:
         customData?.bio ||
-        "Thành viên CLB Đại sứ số Trường THCS Đề Thám. Đam mê chuyển đổi số và an toàn mạng.",
+        `Thành viên CLB Đại sứ số Trường THCS Đề Thám (${email}).`,
       articlesCount: 4,
       videosCount: 2,
       activitiesCount: 6,
@@ -364,18 +559,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           category: "safety",
           earnedAt: new Date().toLocaleDateString("vi-VN"),
         },
-        {
-          id: "bg_g2",
-          name: "Đại sứ số Tiên phong",
-          icon: "Sparkles",
-          description: "Gia nhập cộng đồng chuyển đổi số học đường",
-          category: "community",
-          earnedAt: new Date().toLocaleDateString("vi-VN"),
-        },
       ],
     };
 
-    const mergedUser = { ...defaultGoogleUser, ...customData, isLoggedIn: true, loginProvider: "google" as const };
+    const mergedUser = { ...defaultGoogleUser, ...customData, role: assignedRole, roleTitle: assignedRoleTitle, isLoggedIn: true, loginProvider: "google" as const };
     setCurrentUser(mergedUser);
     setCurrentRole(mergedUser.role);
     setIsAuthenticated(true);
@@ -390,7 +577,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     } catch {}
 
-    showToast(`🎉 Đăng nhập Google thành công! Chào mừng ${mergedUser.name}`, "success", 50);
+    if (matchedPerm) {
+      showToast(`🎉 Xác thực thành công: ${mergedUser.name} [${assignedRoleTitle}]`, "success", 50);
+    } else {
+      showToast(`🎉 Đăng nhập thành công với vai trò: ${assignedRoleTitle}`, "info", 20);
+    }
   };
 
   const loginWithEmail = (
@@ -403,8 +594,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return false;
     }
 
-    const emailName = email.split("@")[0].replace(/[._-]/g, " ");
+    const cleanEmail = email.trim().toLowerCase();
+    const matchedPerm = findPermissionByEmail(cleanEmail);
+
+    let assignedRole: UserRole = "student";
+    let assignedRoleTitle = "Học sinh Thành viên";
+    let assignedAccountType: "student" | "teacher" = extraData?.accountType || "student";
+    let assignedClubRole = "Học viên CLB Kỹ năng số";
+    let assignedClubDuties = "Học tập kỹ năng số, thực hành AI an toàn và nộp bài";
+    let assignedClassroom = extraData?.classroom || "Lớp 8A";
+
+    if (matchedPerm) {
+      assignedRole = matchedPerm.role;
+      assignedRoleTitle = matchedPerm.roleTitle;
+      assignedAccountType = matchedPerm.accountType;
+      assignedClubRole = matchedPerm.clubRole || assignedRoleTitle;
+      assignedClubDuties = matchedPerm.clubDuties || assignedClubDuties;
+      assignedClassroom = matchedPerm.classroom || assignedClassroom;
+    } else {
+      const isTeacher = extraData?.accountType === "teacher" || cleanEmail.includes("gv") || cleanEmail.includes("thay") || cleanEmail.includes("co");
+      assignedRole = isTeacher ? "teacher" : "student";
+      assignedRoleTitle = isTeacher ? "Giáo viên Cố vấn CLB" : "Học sinh Thành viên";
+      assignedAccountType = isTeacher ? "teacher" : "student";
+      assignedClubRole = isTeacher ? "Hội đồng Cố vấn CLB" : "Học viên CLB Kỹ năng số";
+      assignedClassroom = isTeacher ? "Tổ Chuyên môn" : (extraData?.classroom || "Lớp 8A");
+    }
+
+    const emailName = cleanEmail.split("@")[0].replace(/[._-]/g, " ");
     const formattedName =
+      matchedPerm?.name ||
       extraData?.name ||
       emailName
         .split(" ")
@@ -412,39 +630,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .join(" ") ||
       "Thành viên Đại sứ số";
 
-    const isTeacher = extraData?.accountType === "teacher" || email.toLowerCase().includes("gv") || email.toLowerCase().includes("thay") || email.toLowerCase().includes("co");
-    const chosenRole: UserRole = extraData?.role || (isTeacher ? "teacher" : "student");
-
     const newUser: UserProfile = {
       id: "email_user_" + Date.now().toString().slice(-4),
       name: formattedName,
-      email: email,
-      role: chosenRole,
-      roleTitle:
-        extraData?.roleTitle ||
-        (chosenRole === "super_admin"
-          ? "Chủ nhiệm CLB & Quản trị viên"
-          : chosenRole === "teacher"
-          ? "Giáo viên Cố vấn CLB"
-          : chosenRole === "ambassador"
-          ? "Đại sứ số Học đường"
-          : "Học sinh Thành viên"),
-      accountType: extraData?.accountType || (isTeacher ? "teacher" : "student"),
-      clubRole:
-        extraData?.clubRole ||
-        (isTeacher
-          ? "Cố vấn Kỹ thuật & Chuyển đổi số"
-          : "Thành viên Ban Kỹ thuật & AI"),
-      clubDuties:
-        extraData?.clubDuties ||
-        "Tham gia học tập kỹ năng số, đóng góp bài viết và lan tỏa an toàn mạng",
-      classroom: extraData?.classroom || (isTeacher ? "Tổ Khoa học Tự nhiên" : "Lớp 8A"),
+      email: cleanEmail,
+      role: assignedRole,
+      roleTitle: assignedRoleTitle,
+      accountType: assignedAccountType,
+      clubRole: assignedClubRole,
+      clubDuties: assignedClubDuties,
+      classroom: assignedClassroom,
       avatar:
         extraData?.avatar ||
         "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       schoolName: "Trường THCS Đề Thám",
       points: 500,
-      bio: extraData?.bio || `Thành viên CLB Đại sứ số (${email}).`,
+      bio: extraData?.bio || `Thành viên CLB Đại sứ số (${cleanEmail}).`,
       articlesCount: 1,
       videosCount: 0,
       activitiesCount: 2,
@@ -469,7 +670,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem("daisu_current_user", JSON.stringify(newUser));
     localStorage.setItem("daisu_is_authenticated", JSON.stringify(true));
 
-    showToast(`🎉 Đăng nhập thành công! Chào mừng ${newUser.name}`, "success", 30);
+    if (matchedPerm) {
+      showToast(`🎉 Xác thực phân quyền thành công: ${newUser.name} [${assignedRoleTitle}]`, "success", 40);
+    } else {
+      showToast(`🎉 Đăng nhập thành công với vai trò: ${assignedRoleTitle}`, "success", 20);
+    }
     return true;
   };
 
@@ -633,6 +838,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : null
       );
     }
+
+    // Sync to Server
+    fetch(`/api/posts/${postId}/like`, { method: "POST" }).catch(() => {});
   };
 
   const addComment = (postId: string, content: string) => {
@@ -670,6 +878,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     }
 
+    // Sync to Server
+    fetch(`/api/posts/${postId}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newComment),
+    }).catch(() => {});
+
     addPointsToUser(10, "Bình luận trao đổi học tập");
     showToast("Đã gửi bình luận thành công!", "success");
   };
@@ -702,19 +917,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setPosts((prev) => [newPost, ...prev]);
 
+    // Save to Server
+    fetch("/api/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newPost),
+    }).catch((err) => console.error("Error creating post on server:", err));
+
     if (isAutoApprove) {
       addPointsToUser(50, "Xuất bản bài viết chia sẻ tri thức");
-      showToast("Bài viết đã được đăng thành công!", "success");
+      showToast("Bài viết đã được đăng và lưu trên hệ thống thành công!", "success");
     } else {
       showToast("Bài viết đã được gửi vào hàng đợi duyệt của Thầy/Cô!", "info");
     }
   };
 
   const updatePost = (postId: string, postData: Partial<Post>) => {
+    let updatedTarget: Post | null = null;
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id === postId) {
           const updated = { ...p, ...postData };
+          updatedTarget = updated;
           if (activePostDetail && activePostDetail.id === postId) {
             setActivePostDetail(updated);
           }
@@ -723,13 +947,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return p;
       })
     );
-    showToast("Đã cập nhật bài viết thành công (Quyền Quản trị Cổng thông tin)!", "success");
+
+    // Save to Server
+    fetch(`/api/posts/${postId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(postData),
+    }).catch((err) => console.error("Error updating post on server:", err));
+
+    showToast("Đã lưu và cập nhật bài viết lên toàn hệ thống thành công!", "success");
   };
 
   const approvePost = (postId: string) => {
     setPosts((prev) =>
       prev.map((p) => (p.id === postId ? { ...p, status: "published" } : p))
     );
+    fetch(`/api/posts/${postId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "published" }),
+    }).catch(() => {});
     showToast("Đã duyệt và xuất bản bài viết lên Cổng thông tin!", "success");
   };
 
@@ -739,6 +976,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         p.id === postId ? { ...p, status: "rejected", rejectReason: reason } : p
       )
     );
+    fetch(`/api/posts/${postId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "rejected", rejectReason: reason }),
+    }).catch(() => {});
     showToast("Đã từ chối bài viết kèm phản hồi hướng dẫn.", "warning");
   };
 
@@ -748,6 +990,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (activePostDetail && activePostDetail.id === postId) {
       setActivePostDetail(null);
     }
+    fetch(`/api/posts/${postId}`, { method: "DELETE" }).catch(() => {});
     showToast(`Đã xoá bài viết "${target?.title || postId}" khỏi Cổng thông tin số!`, "info");
   };
 
@@ -758,11 +1001,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (activePostDetail && activePostDetail.id === postId) {
       setActivePostDetail((prev) => (prev ? { ...prev, status: "pending_review" } : null));
     }
+    fetch(`/api/posts/${postId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "pending_review" }),
+    }).catch(() => {});
     showToast("Đã thu hồi bài viết về trạng thái Chờ duyệt (gỡ xuất bản)!", "warning");
   };
 
   // 2. GÓC HỌC SINH (STUDENT WORKS)
   const voteWork = (workId: string) => {
+    let updatedWork: StudentWork | null = null;
     setStudentWorks((prev) =>
       prev.map((w) => {
         if (w.id === workId) {
@@ -772,6 +1021,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             votes: isVoted ? w.votes + 1 : Math.max(0, w.votes - 1),
             isVotedByUser: isVoted,
           };
+          updatedWork = updated;
           if (selectedWorkForView?.id === workId) {
             setSelectedWorkForView(updated);
           }
@@ -781,15 +1031,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
 
+    if (updatedWork) {
+      fetch(`/api/student-works/${workId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedWork),
+      }).catch(() => {});
+    }
+
     try {
       confetti({
         particleCount: 50,
         spread: 60,
         origin: { y: 0.7 },
       });
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     addPointsToUser(5, "Bình chọn sản phẩm số xuất sắc");
   };
@@ -816,8 +1072,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setStudentWorks((prev) => [newWork, ...prev]);
+
+    // Save to Server
+    fetch("/api/student-works", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newWork),
+    }).catch(() => {});
+
     addPointsToUser(100, "Gửi sản phẩm số tham gia bình chọn tháng");
-    showToast("Gửi sản phẩm số thành công! Tác phẩm đã lên kệ bình chọn.", "success");
+    showToast("Gửi sản phẩm số thành công! Tác phẩm đã được lưu và lên kệ bình chọn.", "success");
   };
 
   const updateStudentWork = (workId: string, workData: Partial<StudentWork>) => {
@@ -833,7 +1097,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return w;
       })
     );
-    showToast("Đã cập nhật tác phẩm Góc học sinh!", "success");
+
+    fetch(`/api/student-works/${workId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(workData),
+    }).catch(() => {});
+
+    showToast("Đã cập nhật tác phẩm Góc học sinh trên toàn hệ thống!", "success");
   };
 
   const deleteStudentWork = (workId: string) => {
@@ -842,6 +1113,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (selectedWorkForView?.id === workId) {
       setSelectedWorkForView(null);
     }
+    fetch(`/api/student-works/${workId}`, { method: "DELETE" }).catch(() => {});
     showToast(`Đã xoá tác phẩm "${target?.title || workId}" khỏi Góc học sinh!`, "info");
   };
 
@@ -1146,6 +1418,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toasts,
         dismissToast,
         showToast,
+
+        // Email Permissions & RBAC
+        emailPermissions,
+        addEmailPermission,
+        updateEmailPermission,
+        deleteEmailPermission,
+        findPermissionByEmail,
+        isEmailPermissionModalOpen,
+        setIsEmailPermissionModalOpen,
 
         // Authentication & Account Settings
         isAuthenticated,

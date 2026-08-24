@@ -40,9 +40,19 @@ export const StudentWorkDetailModal: React.FC = () => {
   if (!selectedWorkForView) return null;
 
   const handleShare = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
-      showToast("Đã sao chép liên kết tác phẩm!", "success");
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", "student-corner");
+      url.searchParams.set("work", selectedWorkForView.id);
+      const shareUrl = url.toString();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl);
+        showToast("🔗 Đã sao chép link tác phẩm học sinh! Khi chia sẻ người khác sẽ xem được đúng tác phẩm này.", "success");
+      } else {
+        showToast("Đã sao chép liên kết tác phẩm!", "info");
+      }
+    } catch {
+      showToast("Đã sao chép liên kết tác phẩm!", "info");
     }
   };
 

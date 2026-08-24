@@ -22,6 +22,7 @@ import {
   LogOut,
   LogIn,
   Mail,
+  UserCheck,
 } from "lucide-react";
 import { useApp, NavTab } from "../context/AppContext";
 import { UserRole } from "../types";
@@ -41,6 +42,7 @@ export const Navbar: React.FC = () => {
     setIsModerationModalOpen,
     setIsAuthModalOpen,
     setIsAccountSettingsModalOpen,
+    setIsEmailPermissionModalOpen,
     logout,
   } = useApp();
 
@@ -241,21 +243,34 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Moderation Button for Super Admin & Teacher */}
             {(currentRole === "super_admin" || currentRole === "teacher") && (
-              <button
-                onClick={() => setIsModerationModalOpen(true)}
-                className="relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors"
-                title={currentRole === "super_admin" ? "Bàn Quản trị & Duyệt/Xoá bài (Chủ nhiệm CLB)" : "Duyệt bài viết học sinh"}
-              >
-                <ShieldCheck className="w-4 h-4 text-red-600" />
-                <span className="hidden sm:inline">
-                  {currentRole === "super_admin" ? "Quản trị & Duyệt bài" : "Duyệt bài"}
-                </span>
-                {pendingCount > 0 && (
-                  <span className="bg-amber-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                    {pendingCount}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setIsModerationModalOpen(true)}
+                  className="relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors"
+                  title={currentRole === "super_admin" ? "Bàn Quản trị & Duyệt/Xoá bài (Chủ nhiệm CLB)" : "Duyệt bài viết học sinh"}
+                >
+                  <ShieldCheck className="w-4 h-4 text-red-600" />
+                  <span className="hidden sm:inline">
+                    {currentRole === "super_admin" ? "Quản trị & Duyệt bài" : "Duyệt bài"}
                   </span>
+                  {pendingCount > 0 && (
+                    <span className="bg-amber-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+
+                {currentRole === "super_admin" && (
+                  <button
+                    onClick={() => setIsEmailPermissionModalOpen(true)}
+                    className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors"
+                    title="Quản trị Phân quyền Email (RBAC)"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Phân quyền Email</span>
+                  </button>
                 )}
-              </button>
+              </div>
             )}
 
             {/* Create Post / Submit Work CTA */}
@@ -361,6 +376,19 @@ export const Navbar: React.FC = () => {
 
                   {/* Menu Items */}
                   <div className="space-y-1 text-xs">
+                    {(currentRole === "super_admin" || currentRole === "teacher") && (
+                      <button
+                        onClick={() => {
+                          setIsEmailPermissionModalOpen(true);
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-indigo-700 hover:bg-indigo-50 rounded-xl font-semibold transition-colors text-left"
+                      >
+                        <UserCheck className="w-4 h-4 text-indigo-600" />
+                        <span>Quản lý Phân quyền Email (RBAC)</span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
                         setIsAccountSettingsModalOpen(true);

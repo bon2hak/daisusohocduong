@@ -77,11 +77,19 @@ export const PostDetailModal: React.FC = () => {
   };
 
   const handleShare = (post: Post) => {
-    const shareUrl = window.location.href;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl);
-      showToast("Đã sao chép liên kết bài viết vào bộ nhớ tạm!", "success");
-    } else {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", "blog");
+      url.searchParams.set("post", post.id);
+      const shareUrl = url.toString();
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl);
+        showToast("🔗 Đã sao chép link chia sẻ bài viết! Người nhận sẽ xem được nội dung bài viết mới nhất.", "success");
+      } else {
+        showToast("Đã tạo liên kết chia sẻ bài viết!", "info");
+      }
+    } catch {
       showToast("Đã sao chép liên kết bài viết!", "info");
     }
   };

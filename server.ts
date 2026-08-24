@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
+import { loadStore, saveStore } from "./server/dataStore";
 
 dotenv.config();
 
@@ -34,6 +35,251 @@ async function startServer() {
       appName: "Đại Sứ Số Học Đường",
       hasGeminiKey: !!process.env.GEMINI_API_KEY,
     });
+  });
+
+  // --- DATA STORAGE & SYNCHRONIZATION APIS ---
+  // Get all centralized app data
+  app.get("/api/data", (_req, res) => {
+    try {
+      const store = loadStore();
+      res.json({ success: true, data: store });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi đọc dữ liệu máy chủ", details: err?.message });
+    }
+  });
+
+  // Bulk sync or seed data
+  app.post("/api/data/sync", (req, res) => {
+    try {
+      const incoming = req.body;
+      const current = loadStore();
+
+      const mergedData = {
+        posts: Array.isArray(incoming.posts) && incoming.posts.length > 0 ? incoming.posts : current.posts,
+        digitalSkills: Array.isArray(incoming.digitalSkills) && incoming.digitalSkills.length > 0 ? incoming.digitalSkills : current.digitalSkills,
+        studentWorks: Array.isArray(incoming.studentWorks) && incoming.studentWorks.length > 0 ? incoming.studentWorks : current.studentWorks,
+        videos: Array.isArray(incoming.videos) && incoming.videos.length > 0 ? incoming.videos : current.videos,
+        documents: Array.isArray(incoming.documents) && incoming.documents.length > 0 ? incoming.documents : current.documents,
+        aiPrompts: Array.isArray(incoming.aiPrompts) && incoming.aiPrompts.length > 0 ? incoming.aiPrompts : current.aiPrompts,
+        aiTools: Array.isArray(incoming.aiTools) && incoming.aiTools.length > 0 ? incoming.aiTools : current.aiTools,
+        emailPermissions: Array.isArray(incoming.emailPermissions) && incoming.emailPermissions.length > 0 ? incoming.emailPermissions : current.emailPermissions,
+        leaderboard: Array.isArray(incoming.leaderboard) && incoming.leaderboard.length > 0 ? incoming.leaderboard : current.leaderboard,
+        events: Array.isArray(incoming.events) && incoming.events.length > 0 ? incoming.events : current.events,
+      };
+
+      const saved = saveStore(mergedData);
+      res.json({ success: true, message: "Đồng bộ dữ liệu máy chủ thành công", data: saved });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi đồng bộ dữ liệu", details: err?.message });
+    }
+  });
+
+  // POSTS CRUD
+  app.post("/api/posts", (req, res) => {
+    try {
+      const post = req.body;
+      if (!post || !post.id || !post.title) {
+        return res.status(400).json({ error: "Dữ liệu bài viết không hợp lệ" });
+      }
+      const store = loadStore();
+      const existingIdx = store.posts.findIndex((p) => p.id === post.id);
+      let updatedPosts = [...store.posts];
+      if (existingIdx >= 0) {
+        updatedPosts[existingIdx] = post;
+      } else {
+        updatedPosts.unshift(post);
+      }
+      saveStore({ posts: updatedPosts });
+      res.json({ success: true, post });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi lưu bài viết", details: err?.message });
+    }
+  });
+
+  app.put("/api/posts/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      const store = loadStore();
+      const idx = store.posts.findIndex((p) => p.id === id);
+      if (idx === -1) {
+        // If not found in server list, append it
+        const newPost = { ...updateData, id };
+        saveStore({ posts: [newPost, ...store.posts] });
+        return res.json({ success: true, post: newPost });
+      }
+      const updatedPost = { ...store.posts[idx], ...updateData };
+      const updatedPosts = [...store.posts];
+      updatedPosts[idx] = updatedPost;
+      saveStore({ posts: updatedPosts });
+      res.json({ success: true, post: updatedPost });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi cập nhật bài viết", details: err?.message });
+    }
+  });
+
+  app.delete("/api/posts/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const store = loadStore();
+      const updatedPosts = store.posts.filter((p) => p.id !== id);
+      saveStore({ posts: updatedPosts });
+      res.json({ success: true, message: "Đã xóa bài viết khỏi máy chủ" });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi xóa bài viết", details: err?.message });
+    }
+  });
+
+  app.post("/api/posts/:id/like", (req, res) => {
+    try {
+      const { id } = req.params;
+      const store = loadStore();
+      const idx = store.posts.findIndex((p) => p.id === id);
+      if (idx !== -1) {
+        const post = store.posts[idx];
+        const isLiked = !post.isLikedByUser;
+        const updated = {
+          ...post,
+          likes: isLiked ? post.likes + 1 : Math.max(0, post.likes - 1),
+          isLikedByUser: isLiked,
+        };
+        const newPosts = [...store.posts];
+        newPosts[idx] = updated;
+        saveStore({ posts: newPosts });
+        return res.json({ success: true, post: updated });
+      }
+      res.status(404).json({ error: "Không tìm thấy bài viết" });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi thích bài viết", details: err?.message });
+    }
+  });
+
+  app.post("/api/posts/:id/comments", (req, res) => {
+    try {
+      const { id } = req.params;
+      const comment = req.body;
+      const store = loadStore();
+      const idx = store.posts.findIndex((p) => p.id === id);
+      if (idx !== -1) {
+        const post = store.posts[idx];
+        const updatedComments = [...(post.comments || []), comment];
+        const updated = {
+          ...post,
+          comments: updatedComments,
+          commentsCount: updatedComments.length,
+        };
+        const newPosts = [...store.posts];
+        newPosts[idx] = updated;
+        saveStore({ posts: newPosts });
+        return res.json({ success: true, post: updated });
+      }
+      res.status(404).json({ error: "Không tìm thấy bài viết" });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi bình luận", details: err?.message });
+    }
+  });
+
+  // STUDENT WORKS CRUD
+  app.post("/api/student-works", (req, res) => {
+    try {
+      const work = req.body;
+      const store = loadStore();
+      const existingIdx = store.studentWorks.findIndex((w) => w.id === work.id);
+      let updatedWorks = [...store.studentWorks];
+      if (existingIdx >= 0) {
+        updatedWorks[existingIdx] = work;
+      } else {
+        updatedWorks.unshift(work);
+      }
+      saveStore({ studentWorks: updatedWorks });
+      res.json({ success: true, work });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi lưu sản phẩm học sinh", details: err?.message });
+    }
+  });
+
+  app.put("/api/student-works/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      const store = loadStore();
+      const idx = store.studentWorks.findIndex((w) => w.id === id);
+      if (idx === -1) {
+        const newWork = { ...updateData, id };
+        saveStore({ studentWorks: [newWork, ...store.studentWorks] });
+        return res.json({ success: true, work: newWork });
+      }
+      const updatedWork = { ...store.studentWorks[idx], ...updateData };
+      const updatedWorks = [...store.studentWorks];
+      updatedWorks[idx] = updatedWork;
+      saveStore({ studentWorks: updatedWorks });
+      res.json({ success: true, work: updatedWork });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi cập nhật sản phẩm", details: err?.message });
+    }
+  });
+
+  app.delete("/api/student-works/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const store = loadStore();
+      const updatedWorks = store.studentWorks.filter((w) => w.id !== id);
+      saveStore({ studentWorks: updatedWorks });
+      res.json({ success: true, message: "Đã xóa sản phẩm" });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi xóa sản phẩm", details: err?.message });
+    }
+  });
+
+  // EMAIL PERMISSIONS (RBAC)
+  app.get("/api/permissions", (_req, res) => {
+    try {
+      const store = loadStore();
+      res.json({ success: true, permissions: store.emailPermissions });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi lấy danh sách phân quyền", details: err?.message });
+    }
+  });
+
+  app.post("/api/permissions", (req, res) => {
+    try {
+      const perm = req.body;
+      if (!perm.email || !perm.email.includes("@")) {
+        return res.status(400).json({ error: "Địa chỉ email không hợp lệ" });
+      }
+      const store = loadStore();
+      const existingIdx = store.emailPermissions.findIndex(
+        (p) => p.email.toLowerCase() === perm.email.toLowerCase()
+      );
+      let updatedPerms = [...store.emailPermissions];
+      if (existingIdx >= 0) {
+        updatedPerms[existingIdx] = { ...updatedPerms[existingIdx], ...perm };
+      } else {
+        const newPerm = {
+          ...perm,
+          id: perm.id || "perm_" + Date.now().toString().slice(-5),
+          grantedAt: perm.grantedAt || new Date().toLocaleDateString("vi-VN"),
+          status: perm.status || "active",
+        };
+        updatedPerms.push(newPerm);
+      }
+      saveStore({ emailPermissions: updatedPerms });
+      res.json({ success: true, permissions: updatedPerms });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi lưu phân quyền", details: err?.message });
+    }
+  });
+
+  app.delete("/api/permissions/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const store = loadStore();
+      const updatedPerms = store.emailPermissions.filter((p) => p.id !== id && p.email !== id);
+      saveStore({ emailPermissions: updatedPerms });
+      res.json({ success: true, permissions: updatedPerms });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi xóa phân quyền", details: err?.message });
+    }
   });
 
   // Trợ lý Đại sứ số AI endpoint
