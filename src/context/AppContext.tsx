@@ -22,6 +22,7 @@ import {
   AIPromptTemplate,
   AIToolItem,
   EmailPermission,
+  SavedGoogleAccount,
 } from "../types";
 import {
   MOCK_USERS,
@@ -36,6 +37,84 @@ import {
   INITIAL_AI_TOOLS,
   INITIAL_EMAIL_PERMISSIONS,
 } from "../data/initialData";
+
+export const INITIAL_SAVED_GOOGLE_ACCOUNTS: SavedGoogleAccount[] = [
+  {
+    email: "bon2beaking2@gmail.com",
+    name: "Thầy Huỳnh Xuân Hoàng",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    accountType: "teacher",
+    role: "super_admin",
+    roleTitle: "Chủ nhiệm CLB & Quản trị viên Tối cao",
+    classroom: "Ban Quản Trị CLB Đại Sứ Số",
+    clubRole: "Chủ nhiệm Câu lạc bộ",
+    clubDuties: "Quản trị tối cao toàn bộ hệ thống, phân quyền email, duyệt & xuất bản bài viết",
+    hasSavedPassword: true,
+    savedPassword: "••••••••",
+    lastLogin: "Vừa xong",
+    isRegistered: true,
+  },
+  {
+    email: "hoanghx@detham.edu.vn",
+    name: "Thầy Huỳnh Xuân Hoàng",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    accountType: "teacher",
+    role: "super_admin",
+    roleTitle: "Chủ nhiệm CLB & Quản trị viên Cổng thông tin",
+    classroom: "Chủ nhiệm CLB Đại sứ số",
+    clubRole: "Chủ nhiệm Câu lạc bộ",
+    clubDuties: "Chỉ đạo toàn diện kế hoạch chuyển đổi số, phê duyệt bài viết và ban hành nội dung số",
+    hasSavedPassword: true,
+    savedPassword: "••••••••",
+    lastLogin: "Hôm nay",
+    isRegistered: true,
+  },
+  {
+    email: "ninhdt@detham.edu.vn",
+    name: "Thầy Đặng Tiến Ninh",
+    avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80",
+    accountType: "teacher",
+    role: "teacher",
+    roleTitle: "Cố vấn Kỹ thuật & Chuyển đổi số",
+    classroom: "Tổ Kỹ thuật & Chuyển đổi số",
+    clubRole: "Cố vấn Kỹ thuật & Hạ tầng Số",
+    clubDuties: "Quản trị kỹ thuật, giải pháp an toàn mạng, duyệt bài và hướng dẫn học sinh ứng dụng AI",
+    hasSavedPassword: true,
+    savedPassword: "••••••••",
+    lastLogin: "Hôm qua",
+    isRegistered: true,
+  },
+  {
+    email: "minhanh.8a@detham.edu.vn",
+    name: "Nguyễn Minh Anh",
+    avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80",
+    accountType: "student",
+    role: "ambassador",
+    roleTitle: "Đại sứ số Học đường",
+    classroom: "Lớp 8A",
+    clubRole: "Trưởng ban Truyền thông & Sáng tạo",
+    clubDuties: "Tuyên truyền kỹ năng số, thiết kế ấn phẩm và chia sẻ kinh nghiệm AI",
+    hasSavedPassword: true,
+    savedPassword: "••••••••",
+    lastLogin: "2 ngày trước",
+    isRegistered: true,
+  },
+  {
+    email: "tuankiet.7b@detham.edu.vn",
+    name: "Trần Tuấn Kiệt",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+    accountType: "student",
+    role: "student",
+    roleTitle: "Học sinh Thành viên CLB",
+    classroom: "Lớp 7B",
+    clubRole: "Học sinh Tham gia CLB",
+    clubDuties: "Tham gia các buổi sinh hoạt CLB, học tập kỹ năng số và làm bài tập thực hành",
+    hasSavedPassword: true,
+    savedPassword: "••••••••",
+    lastLogin: "3 ngày trước",
+    isRegistered: true,
+  },
+];
 
 export type NavTab =
   | "home"
@@ -144,7 +223,11 @@ interface AppContextType {
   setIsAccountSettingsModalOpen: (open: boolean) => void;
   isEmailPermissionModalOpen: boolean;
   setIsEmailPermissionModalOpen: (open: boolean) => void;
-  loginWithGoogle: (customGoogleData?: Partial<UserProfile>) => void;
+  savedGoogleAccounts: SavedGoogleAccount[];
+  saveGoogleAccount: (account: SavedGoogleAccount) => void;
+  removeSavedGoogleAccount: (email: string) => void;
+  checkUserRegistered: (email: string) => { isRegistered: boolean; profile?: Partial<UserProfile>; savedAccount?: SavedGoogleAccount };
+  loginWithGoogle: (customGoogleData?: Partial<UserProfile> & { savePassword?: boolean; password?: string }) => void;
   loginWithEmail: (email: string, password?: string, extraData?: Partial<UserProfile>) => boolean;
   logout: () => void;
   updateUserProfile: (data: Partial<UserProfile>) => void;
@@ -671,17 +754,98 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }).catch((err) => console.error("Error deleting permission on server:", err));
   };
 
+  const [savedGoogleAccounts, setSavedGoogleAccounts] = useState<SavedGoogleAccount[]>(() => {
+    const saved = localStorage.getItem("daisu_saved_google_accounts");
+    return saved ? JSON.parse(saved) : INITIAL_SAVED_GOOGLE_ACCOUNTS;
+  });
+
+  const [registeredProfiles, setRegisteredProfiles] = useState<Record<string, Partial<UserProfile>>>(() => {
+    const saved = localStorage.getItem("daisu_registered_profiles");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const saveGoogleAccount = (acc: SavedGoogleAccount) => {
+    setSavedGoogleAccounts((prev) => {
+      const filtered = prev.filter((a) => a.email.toLowerCase() !== acc.email.toLowerCase());
+      const updated = [acc, ...filtered];
+      localStorage.setItem("daisu_saved_google_accounts", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const removeSavedGoogleAccount = (email: string) => {
+    setSavedGoogleAccounts((prev) => {
+      const updated = prev.filter((a) => a.email.toLowerCase() !== email.toLowerCase());
+      localStorage.setItem("daisu_saved_google_accounts", JSON.stringify(updated));
+      return updated;
+    });
+    showToast(`Đã gỡ tài khoản ${email} khỏi danh sách đã lưu trên máy`, "info");
+  };
+
+  const checkUserRegistered = (email: string): { isRegistered: boolean; profile?: Partial<UserProfile>; savedAccount?: SavedGoogleAccount } => {
+    const cleanEmail = email.trim().toLowerCase();
+    
+    // Check in registeredProfiles
+    if (registeredProfiles[cleanEmail]) {
+      return {
+        isRegistered: true,
+        profile: registeredProfiles[cleanEmail],
+      };
+    }
+
+    // Check in emailPermissions
+    const matchedPerm = findPermissionByEmail(cleanEmail);
+    if (matchedPerm) {
+      return {
+        isRegistered: true,
+        profile: {
+          name: matchedPerm.name,
+          email: matchedPerm.email,
+          role: matchedPerm.role,
+          roleTitle: matchedPerm.roleTitle,
+          accountType: matchedPerm.accountType,
+          clubRole: matchedPerm.clubRole,
+          clubDuties: matchedPerm.clubDuties,
+          classroom: matchedPerm.classroom,
+        },
+      };
+    }
+
+    // Check in savedGoogleAccounts
+    const matchedSaved = savedGoogleAccounts.find((a) => a.email.toLowerCase() === cleanEmail);
+    if (matchedSaved && matchedSaved.isRegistered) {
+      return {
+        isRegistered: true,
+        savedAccount: matchedSaved,
+        profile: {
+          name: matchedSaved.name,
+          email: matchedSaved.email,
+          role: matchedSaved.role,
+          roleTitle: matchedSaved.roleTitle,
+          accountType: matchedSaved.accountType,
+          clubRole: matchedSaved.clubRole,
+          clubDuties: matchedSaved.clubDuties,
+          classroom: matchedSaved.classroom,
+          avatar: matchedSaved.avatar,
+        },
+      };
+    }
+
+    return { isRegistered: false };
+  };
+
   // Auth Handlers with Email Permission Verification
-  const loginWithGoogle = (customData?: Partial<UserProfile>) => {
-    const email = (customData?.email || "an.nguyen@gmail.com").toLowerCase();
+  const loginWithGoogle = (customData?: Partial<UserProfile> & { savePassword?: boolean; password?: string }) => {
+    const email = (customData?.email || "an.nguyen@gmail.com").toLowerCase().trim();
     const matchedPerm = findPermissionByEmail(email);
+    const existingProfile = registeredProfiles[email];
 
     let assignedRole: UserRole = "ambassador";
     let assignedRoleTitle = "Đại sứ số Học đường";
     let assignedClubRole = "Thành viên Ban Truyền thông & Sáng tạo";
     let assignedClubDuties = "Tuyên truyền kỹ năng số, thiết kế ấn phẩm và chia sẻ kinh nghiệm AI";
-    let assignedClassroom = customData?.classroom || "Lớp 8A";
-    let assignedAccountType: "student" | "teacher" = customData?.accountType || "student";
+    let assignedClassroom = customData?.classroom || existingProfile?.classroom || "Lớp 8A";
+    let assignedAccountType: "student" | "teacher" = customData?.accountType || existingProfile?.accountType || "student";
 
     if (matchedPerm) {
       // Recognized from official permission table
@@ -691,26 +855,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       assignedClubDuties = matchedPerm.clubDuties || assignedClubDuties;
       assignedClassroom = matchedPerm.classroom || assignedClassroom;
       assignedAccountType = matchedPerm.accountType || "student";
+    } else if (existingProfile && existingProfile.role) {
+      assignedRole = existingProfile.role;
+      assignedRoleTitle = existingProfile.roleTitle || (assignedAccountType === "teacher" ? "Giáo viên Cố vấn CLB" : "Học sinh Thành viên CLB");
+      assignedClubRole = existingProfile.clubRole || (assignedAccountType === "teacher" ? "Giáo viên CLB" : "Học sinh CLB");
+      assignedClubDuties = existingProfile.clubDuties || assignedClubDuties;
+      assignedClassroom = existingProfile.classroom || assignedClassroom;
+      assignedAccountType = existingProfile.accountType || assignedAccountType;
     } else {
       // Not in special table: give regular student or member teacher role
       if (customData?.accountType === "teacher" || email.includes("detham.edu.vn")) {
         assignedRole = "teacher";
         assignedRoleTitle = "Giáo viên Cố vấn CLB";
         assignedAccountType = "teacher";
-        assignedClubRole = "Thành viên Hội đồng Cố vấn";
-        assignedClassroom = "Tổ Chuyên môn";
+        assignedClubRole = customData?.clubRole || "Thành viên Hội đồng Cố vấn";
+        assignedClassroom = customData?.classroom || "Tổ Chuyên môn";
       } else {
         assignedRole = "student";
         assignedRoleTitle = "Học sinh Thành viên CLB";
         assignedAccountType = "student";
-        assignedClubRole = "Học sinh Tham gia CLB";
+        assignedClubRole = customData?.clubRole || "Học sinh Tham gia CLB";
         assignedClassroom = customData?.classroom || "Lớp 8A";
       }
     }
 
     const defaultGoogleUser: UserProfile = {
       id: "google_user_" + Date.now().toString().slice(-4),
-      name: customData?.name || (matchedPerm ? matchedPerm.name : "Nguyễn Văn An"),
+      name: customData?.name || existingProfile?.name || (matchedPerm ? matchedPerm.name : "Nguyễn Văn An"),
       email: email,
       role: assignedRole,
       roleTitle: assignedRoleTitle,
@@ -720,11 +891,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       classroom: assignedClassroom,
       avatar:
         customData?.avatar ||
+        existingProfile?.avatar ||
         "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       schoolName: "Trường THCS Đề Thám",
-      points: customData?.points || 650,
+      points: customData?.points || existingProfile?.points || 650,
       bio:
         customData?.bio ||
+        existingProfile?.bio ||
         `Thành viên CLB Đại sứ số Trường THCS Đề Thám (${email}).`,
       articlesCount: 4,
       videosCount: 2,
@@ -744,7 +917,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ],
     };
 
-    const mergedUser = { ...defaultGoogleUser, ...customData, role: assignedRole, roleTitle: assignedRoleTitle, isLoggedIn: true, loginProvider: "google" as const };
+    const mergedUser = {
+      ...defaultGoogleUser,
+      ...customData,
+      role: assignedRole,
+      roleTitle: assignedRoleTitle,
+      accountType: assignedAccountType,
+      classroom: assignedClassroom,
+      clubRole: assignedClubRole,
+      isLoggedIn: true,
+      loginProvider: "google" as const,
+    };
+
+    // Save profile to registeredProfiles
+    const updatedProfiles = {
+      ...registeredProfiles,
+      [email]: {
+        name: mergedUser.name,
+        email: mergedUser.email,
+        role: mergedUser.role,
+        roleTitle: mergedUser.roleTitle,
+        accountType: mergedUser.accountType,
+        classroom: mergedUser.classroom,
+        clubRole: mergedUser.clubRole,
+        clubDuties: mergedUser.clubDuties,
+        avatar: mergedUser.avatar,
+        points: mergedUser.points,
+      },
+    };
+    setRegisteredProfiles(updatedProfiles);
+    localStorage.setItem("daisu_registered_profiles", JSON.stringify(updatedProfiles));
+
+    // Save to savedGoogleAccounts
+    const newSavedAcc: SavedGoogleAccount = {
+      email: mergedUser.email || email,
+      name: mergedUser.name,
+      avatar: mergedUser.avatar,
+      accountType: mergedUser.accountType || "student",
+      role: mergedUser.role,
+      roleTitle: mergedUser.roleTitle,
+      classroom: mergedUser.classroom,
+      clubRole: mergedUser.clubRole,
+      clubDuties: mergedUser.clubDuties,
+      hasSavedPassword: customData?.savePassword !== false,
+      savedPassword: customData?.savePassword !== false ? (customData?.password || "••••••••") : undefined,
+      lastLogin: "Vừa xong",
+      isRegistered: true,
+    };
+    saveGoogleAccount(newSavedAcc);
+
     setCurrentUser(mergedUser);
     setCurrentRole(mergedUser.role);
     setIsAuthenticated(true);
@@ -753,7 +974,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       confetti({
-        particleCount: 80,
+        particleCount: 90,
         spread: 80,
         origin: { y: 0.6 },
       });
@@ -762,7 +983,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (matchedPerm) {
       showToast(`🎉 Xác thực thành công: ${mergedUser.name} [${assignedRoleTitle}]`, "success", 50);
     } else {
-      showToast(`🎉 Đăng nhập thành công với vai trò: ${assignedRoleTitle}`, "info", 20);
+      showToast(`🎉 Chào mừng ${mergedUser.name} [${assignedRoleTitle}] gia nhập ứng dụng!`, "success", 30);
     }
   };
 
@@ -1764,6 +1985,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         verifyAdminPin,
         isAccountSettingsModalOpen,
         setIsAccountSettingsModalOpen,
+        savedGoogleAccounts,
+        saveGoogleAccount,
+        removeSavedGoogleAccount,
+        checkUserRegistered,
         loginWithGoogle,
         loginWithEmail,
         logout,

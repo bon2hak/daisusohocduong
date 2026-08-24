@@ -33,6 +33,22 @@ export interface Badge {
   earnedAt?: string;
 }
 
+export interface SavedGoogleAccount {
+  email: string;
+  name: string;
+  avatar: string;
+  accountType: "student" | "teacher";
+  role: UserRole;
+  roleTitle: string;
+  classroom?: string;
+  clubRole?: string;
+  clubDuties?: string;
+  hasSavedPassword?: boolean;
+  savedPassword?: string;
+  lastLogin?: string;
+  isRegistered?: boolean;
+}
+
 export type PostCategory =
   | "ambassador_news"
   | "school_activities"
