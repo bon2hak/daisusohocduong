@@ -1,6 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  getDocs,
+} from "firebase/firestore";
+import { db } from "../lib/firebase";
+import {
   UserProfile,
   UserRole,
   Post,
@@ -291,10 +300,84 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_EMAIL_PERMISSIONS;
   });
 
-  // Fetch Centralized Data from Server on Mount & on Window Focus
+  // Real-time Cloud Synchronization via Firebase Firestore & Server Backup
   useEffect(() => {
     let isMounted = true;
 
+    // 1. Listen to Firestore real-time changes
+    let unsubscribePosts: (() => void) | null = null;
+    let unsubscribeWorks: (() => void) | null = null;
+    let unsubscribePerms: (() => void) | null = null;
+
+    try {
+      // Real-time Posts
+      const postsCol = collection(db, "posts");
+      unsubscribePosts = onSnapshot(
+        postsCol,
+        (snapshot) => {
+          if (!snapshot.empty && isMounted) {
+            const remotePosts: Post[] = [];
+            snapshot.forEach((docSnap) => {
+              remotePosts.push(docSnap.data() as Post);
+            });
+            // Sort by published/created timestamp descending if available
+            setPosts(remotePosts);
+            try {
+              localStorage.setItem("daisu_posts", JSON.stringify(remotePosts));
+            } catch {}
+          }
+        },
+        (error) => {
+          console.warn("Firestore posts listener notice (fallback to server):", error);
+        }
+      );
+
+      // Real-time Student Works
+      const worksCol = collection(db, "student_works");
+      unsubscribeWorks = onSnapshot(
+        worksCol,
+        (snapshot) => {
+          if (!snapshot.empty && isMounted) {
+            const remoteWorks: StudentWork[] = [];
+            snapshot.forEach((docSnap) => {
+              remoteWorks.push(docSnap.data() as StudentWork);
+            });
+            setStudentWorks(remoteWorks);
+            try {
+              localStorage.setItem("daisu_works", JSON.stringify(remoteWorks));
+            } catch {}
+          }
+        },
+        (error) => {
+          console.warn("Firestore works listener notice:", error);
+        }
+      );
+
+      // Real-time Email Permissions
+      const permsCol = collection(db, "email_permissions");
+      unsubscribePerms = onSnapshot(
+        permsCol,
+        (snapshot) => {
+          if (!snapshot.empty && isMounted) {
+            const remotePerms: EmailPermission[] = [];
+            snapshot.forEach((docSnap) => {
+              remotePerms.push(docSnap.data() as EmailPermission);
+            });
+            setEmailPermissions(remotePerms);
+            try {
+              localStorage.setItem("daisu_email_permissions", JSON.stringify(remotePerms));
+            } catch {}
+          }
+        },
+        (error) => {
+          console.warn("Firestore permissions listener notice:", error);
+        }
+      );
+    } catch (e) {
+      console.warn("Firestore initialization notice:", e);
+    }
+
+    // 2. Fetch Centralized Data from Server on Mount & Sync initial batch to Firestore
     const fetchServerData = async () => {
       try {
         const res = await fetch("/api/data", { cache: "no-store" });
@@ -303,7 +386,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (json.success && json.data) {
             const d = json.data;
             if (Array.isArray(d.posts) && d.posts.length > 0) {
-              setPosts(d.posts);
+              setPosts((prev) => {
+                // If local state is default and remote has data, update
+                return d.posts;
+              });
               localStorage.setItem("daisu_posts", JSON.stringify(d.posts));
             }
             if (Array.isArray(d.studentWorks) && d.studentWorks.length > 0) {
@@ -359,11 +445,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleFocus);
 
-    // Periodic background sync every 8 seconds
-    const interval = setInterval(fetchServerData, 8000);
+    // Periodic background sync every 6 seconds
+    const interval = setInterval(fetchServerData, 6000);
 
     return () => {
       isMounted = false;
+      if (unsubscribePosts) unsubscribePosts();
+      if (unsubscribeWorks) unsubscribeWorks();
+      if (unsubscribePerms) unsubscribePerms();
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleFocus);
       clearInterval(interval);
@@ -466,6 +555,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return [...prev, newPerm];
     });
 
+    try {
+      setDoc(doc(db, "email_permissions", newPerm.id), newPerm).catch(() => {});
+    } catch {}
+
     // Sync to Server
     fetch("/api/permissions", {
       method: "POST",
@@ -475,12 +568,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateEmailPermission = (id: string, data: Partial<EmailPermission>) => {
+    let updatedObj: EmailPermission | null = null;
     setEmailPermissions((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...data } : p))
+      prev.map((p) => {
+        if (p.id === id) {
+          const u = { ...p, ...data };
+          updatedObj = u;
+          return u;
+        }
+        return p;
+      })
     );
 
-    const target = emailPermissions.find((p) => p.id === id);
+    const target = updatedObj || emailPermissions.find((p) => p.id === id);
     if (target) {
+      try {
+        setDoc(doc(db, "email_permissions", id), target).catch(() => {});
+      } catch {}
       fetch("/api/permissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -491,6 +595,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteEmailPermission = (id: string) => {
     setEmailPermissions((prev) => prev.filter((p) => p.id !== id));
+
+    try {
+      deleteDoc(doc(db, "email_permissions", id)).catch(() => {});
+    } catch {}
 
     fetch(`/api/permissions/${id}`, {
       method: "DELETE",
@@ -925,6 +1033,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setPosts((prev) => [newPost, ...prev]);
 
+    // Save to Firestore Real-time
+    try {
+      setDoc(doc(db, "posts", newPost.id), newPost).catch(() => {});
+    } catch {}
+
     // Save to Server
     fetch("/api/posts", {
       method: "POST",
@@ -960,24 +1073,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return nextPosts;
     });
 
+    const finalData = updatedTarget || postData;
+
+    // Save to Firestore Real-time
+    try {
+      if (updatedTarget) {
+        setDoc(doc(db, "posts", postId), updatedTarget).catch(() => {});
+      }
+    } catch {}
+
     // Save to Server
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedTarget || postData),
+      body: JSON.stringify(finalData),
     }).catch((err) => console.error("Error updating post on server:", err));
 
     showToast("Đã lưu và cập nhật bài viết lên toàn hệ thống thành công!", "success");
   };
 
   const approvePost = (postId: string) => {
+    let approvedItem: Post | null = null;
     setPosts((prev) => {
-      const updated = prev.map((p) => (p.id === postId ? { ...p, status: "published" as const } : p));
+      const updated = prev.map((p) => {
+        if (p.id === postId) {
+          const u = { ...p, status: "published" as const };
+          approvedItem = u;
+          return u;
+        }
+        return p;
+      });
       try {
         localStorage.setItem("daisu_posts", JSON.stringify(updated));
       } catch {}
       return updated;
     });
+    try {
+      if (approvedItem) {
+        setDoc(doc(db, "posts", postId), approvedItem).catch(() => {});
+      }
+    } catch {}
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -987,15 +1122,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const rejectPost = (postId: string, reason: string) => {
+    let rejectedItem: Post | null = null;
     setPosts((prev) => {
-      const updated = prev.map((p) =>
-        p.id === postId ? { ...p, status: "rejected" as const, rejectReason: reason } : p
-      );
+      const updated = prev.map((p) => {
+        if (p.id === postId) {
+          const u = { ...p, status: "rejected" as const, rejectReason: reason };
+          rejectedItem = u;
+          return u;
+        }
+        return p;
+      });
       try {
         localStorage.setItem("daisu_posts", JSON.stringify(updated));
       } catch {}
       return updated;
     });
+    try {
+      if (rejectedItem) {
+        setDoc(doc(db, "posts", postId), rejectedItem).catch(() => {});
+      }
+    } catch {}
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -1016,13 +1162,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (activePostDetail && activePostDetail.id === postId) {
       setActivePostDetail(null);
     }
+    try {
+      deleteDoc(doc(db, "posts", postId)).catch(() => {});
+    } catch {}
     fetch(`/api/posts/${postId}`, { method: "DELETE" }).catch(() => {});
     showToast(`Đã xoá bài viết "${target?.title || postId}" khỏi Cổng thông tin số!`, "info");
   };
 
   const unpublishPost = (postId: string) => {
+    let unpublishedItem: Post | null = null;
     setPosts((prev) => {
-      const updated = prev.map((p) => (p.id === postId ? { ...p, status: "pending_review" as const } : p));
+      const updated = prev.map((p) => {
+        if (p.id === postId) {
+          const u = { ...p, status: "pending_review" as const };
+          unpublishedItem = u;
+          return u;
+        }
+        return p;
+      });
       try {
         localStorage.setItem("daisu_posts", JSON.stringify(updated));
       } catch {}
@@ -1031,6 +1188,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (activePostDetail && activePostDetail.id === postId) {
       setActivePostDetail((prev) => (prev ? { ...prev, status: "pending_review" } : null));
     }
+    try {
+      if (unpublishedItem) {
+        setDoc(doc(db, "posts", postId), unpublishedItem).catch(() => {});
+      }
+    } catch {}
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -1066,6 +1228,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     if (updatedWork) {
+      try {
+        setDoc(doc(db, "student_works", workId), updatedWork).catch(() => {});
+      } catch {}
       fetch(`/api/student-works/${workId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -1113,6 +1278,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return updated;
     });
 
+    try {
+      setDoc(doc(db, "student_works", newWork.id), newWork).catch(() => {});
+    } catch {}
+
     // Save to Server
     fetch("/api/student-works", {
       method: "POST",
@@ -1144,10 +1313,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return updatedList;
     });
 
+    const finalWork = updatedWorkObj || workData;
+    try {
+      if (updatedWorkObj) {
+        setDoc(doc(db, "student_works", workId), updatedWorkObj).catch(() => {});
+      }
+    } catch {}
+
     fetch(`/api/student-works/${workId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedWorkObj || workData),
+      body: JSON.stringify(finalWork),
     }).catch(() => {});
 
     showToast("Đã cập nhật tác phẩm Góc học sinh trên toàn hệ thống!", "success");
@@ -1165,6 +1341,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (selectedWorkForView?.id === workId) {
       setSelectedWorkForView(null);
     }
+    try {
+      deleteDoc(doc(db, "student_works", workId)).catch(() => {});
+    } catch {}
     fetch(`/api/student-works/${workId}`, { method: "DELETE" }).catch(() => {});
     showToast(`Đã xoá tác phẩm "${target?.title || workId}" khỏi Góc học sinh!`, "info");
   };
