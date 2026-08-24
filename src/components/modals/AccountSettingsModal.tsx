@@ -86,6 +86,8 @@ export const AccountSettingsModal: React.FC = () => {
     setIsAccountSettingsModalOpen,
     currentUser,
     updateUserProfile,
+    findPermissionByEmail,
+    setIsAdminPinModalOpen,
     logout,
     showToast,
   } = useApp();
@@ -172,38 +174,41 @@ export const AccountSettingsModal: React.FC = () => {
     }
 
     const finalAvatar = customAvatarUrl.trim() || avatar;
+    const targetEmail = (email || currentUser.email || "").toLowerCase();
+    const perm = findPermissionByEmail(targetEmail);
 
     let role: UserRole = currentUser.role;
-    if (accountType === "teacher") {
-      if (clubRole.includes("Chủ nhiệm")) {
-        role = "super_admin";
-      } else {
-        role = "teacher";
-      }
+    let roleTitle: string = currentUser.roleTitle;
+
+    // Check if the user is authorized for super_admin or teacher
+    if (perm) {
+      role = perm.role;
+      roleTitle = perm.roleTitle;
+    } else if (currentUser.role === "super_admin" || currentUser.role === "teacher") {
+      role = currentUser.role;
+      roleTitle = currentUser.roleTitle;
     } else {
+      // Normal guest / student can only be student or ambassador
       if (clubRole.includes("Trưởng ban") || clubRole.includes("Phó ban")) {
         role = "ambassador";
+        roleTitle = "Đại sứ số Học đường";
       } else {
         role = "student";
+        roleTitle = "Học sinh Thành viên CLB";
       }
     }
 
     updateUserProfile({
       name,
       email: email || currentUser.email,
-      accountType,
+      accountType: role === "super_admin" || role === "teacher" ? "teacher" : "student",
       classroom,
       clubRole,
       clubDuties,
       bio,
       avatar: finalAvatar,
       role,
-      roleTitle:
-        accountType === "teacher"
-          ? clubRole
-          : role === "ambassador"
-          ? "Đại sứ số Học đường"
-          : "Học sinh Thành viên CLB",
+      roleTitle,
     });
 
     setIsAccountSettingsModalOpen(false);

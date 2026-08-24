@@ -137,6 +137,9 @@ interface AppContextType {
   setIsAuthenticated: (val: boolean) => void;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
+  isAdminPinModalOpen: boolean;
+  setIsAdminPinModalOpen: (open: boolean) => void;
+  verifyAdminPin: (pin: string, role?: "super_admin" | "teacher") => boolean;
   isAccountSettingsModalOpen: boolean;
   setIsAccountSettingsModalOpen: (open: boolean) => void;
   isEmailPermissionModalOpen: boolean;
@@ -202,7 +205,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem("daisu_current_user");
-    return saved ? JSON.parse(saved) : MOCK_USERS.super_admin;
+    return saved ? JSON.parse(saved) : MOCK_USERS.student;
   });
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     const saved = localStorage.getItem("daisu_current_user");
@@ -212,7 +215,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (u.role) return u.role;
       } catch (e) {}
     }
-    return "super_admin";
+    return "student";
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const saved = localStorage.getItem("daisu_is_authenticated");
@@ -226,6 +229,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false; // Default to false on first-time visit
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAdminPinModalOpen, setIsAdminPinModalOpen] = useState(false);
   const [isAccountSettingsModalOpen, setIsAccountSettingsModalOpen] = useState(false);
   const [isEmailPermissionModalOpen, setIsEmailPermissionModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<NavTab>("home");
@@ -513,8 +517,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAddPromptModalOpen, setIsAddPromptModalOpen] = useState(false);
   const [isAddAIToolModalOpen, setIsAddAIToolModalOpen] = useState(false);
 
-  // Sync role update
+  // Verify Admin Passcode PIN
+  const verifyAdminPin = (pin: string, targetRole: "super_admin" | "teacher" = "super_admin"): boolean => {
+    const validPins = ["2026", "daisuso2026", "daisu2026", "admin2026"];
+    if (validPins.includes(pin.trim())) {
+      const mockU = MOCK_USERS[targetRole];
+      const adminEmail = targetRole === "super_admin" ? "bon2beaking2@gmail.com" : "ninhdt@detham.edu.vn";
+      const updatedUser: UserProfile = {
+        ...mockU,
+        isLoggedIn: true,
+        email: adminEmail,
+        loginProvider: "google",
+      };
+      setCurrentUser(updatedUser);
+      setCurrentRole(targetRole);
+      setIsAuthenticated(true);
+      localStorage.setItem("daisu_current_user", JSON.stringify(updatedUser));
+      localStorage.setItem("daisu_is_authenticated", JSON.stringify(true));
+      try {
+        confetti({
+          particleCount: 70,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+      } catch {}
+      showToast(`🎉 Xác thực bảo mật thành công! Chào mừng ${mockU.name}`, "success", 50);
+      return true;
+    }
+    showToast("Mã PIN bảo mật Quản trị không chính xác!", "error");
+    return false;
+  };
+
+  // Sync role update with security enforcement
   const handleSetRole = (role: UserRole) => {
+    // If switching to super_admin or teacher, require authorized email or prompt Admin PIN
+    if (role === "super_admin" || role === "teacher") {
+      const perm = findPermissionByEmail(currentUser.email);
+      const isAuthorizedEmail = perm && (perm.role === role || perm.role === "super_admin");
+      const isLoggedAsSuperAdmin = currentUser.role === "super_admin" && (currentUser.email === "bon2beaking2@gmail.com" || currentUser.email === "hoanghx@detham.edu.vn");
+
+      if (!isAuthorizedEmail && !isLoggedAsSuperAdmin) {
+        setIsAdminPinModalOpen(true);
+        showToast("Vui lòng nhập Mã PIN Quản trị hoặc đăng nhập Gmail được cấp quyền để truy cập vai trò này!", "warning");
+        return;
+      }
+    }
+
     setCurrentRole(role);
     const mockU = MOCK_USERS[role];
     const updated = {
@@ -536,6 +584,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addEmailPermission = (permData: Omit<EmailPermission, "id" | "grantedAt">) => {
+    if (currentRole !== "super_admin") {
+      setIsAdminPinModalOpen(true);
+      showToast("Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền thêm phân quyền Email!", "error");
+      return;
+    }
+
     const newPerm: EmailPermission = {
       ...permData,
       id: "perm_" + Date.now().toString().slice(-5),
@@ -568,6 +622,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateEmailPermission = (id: string, data: Partial<EmailPermission>) => {
+    if (currentRole !== "super_admin") {
+      setIsAdminPinModalOpen(true);
+      showToast("Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền chỉnh sửa phân quyền Email!", "error");
+      return;
+    }
+
     let updatedObj: EmailPermission | null = null;
     setEmailPermissions((prev) =>
       prev.map((p) => {
@@ -594,6 +654,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteEmailPermission = (id: string) => {
+    if (currentRole !== "super_admin") {
+      setIsAdminPinModalOpen(true);
+      showToast("Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền xoá phân quyền Email!", "error");
+      return;
+    }
+
     setEmailPermissions((prev) => prev.filter((p) => p.id !== id));
 
     try {
@@ -728,12 +794,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       assignedClubDuties = matchedPerm.clubDuties || assignedClubDuties;
       assignedClassroom = matchedPerm.classroom || assignedClassroom;
     } else {
-      const isTeacher = extraData?.accountType === "teacher" || cleanEmail.includes("gv") || cleanEmail.includes("thay") || cleanEmail.includes("co");
-      assignedRole = isTeacher ? "teacher" : "student";
-      assignedRoleTitle = isTeacher ? "Giáo viên Cố vấn CLB" : "Học sinh Thành viên";
-      assignedAccountType = isTeacher ? "teacher" : "student";
-      assignedClubRole = isTeacher ? "Hội đồng Cố vấn CLB" : "Học viên CLB Kỹ năng số";
-      assignedClassroom = isTeacher ? "Tổ Chuyên môn" : (extraData?.classroom || "Lớp 8A");
+      assignedRole = "student";
+      assignedRoleTitle = "Học sinh Thành viên";
+      assignedAccountType = "student";
+      assignedClubRole = "Học viên CLB Kỹ năng số";
+      assignedClassroom = extraData?.classroom || "Lớp 8A";
     }
 
     const emailName = cleanEmail.split("@")[0].replace(/[._-]/g, " ");
@@ -1093,6 +1158,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const approvePost = (postId: string) => {
+    if (currentRole !== "super_admin" && currentRole !== "teacher") {
+      setIsAdminPinModalOpen(true);
+      showToast("Chỉ Ban Quản trị / Thầy Cô Cố vấn mới có quyền phê duyệt bài viết!", "error");
+      return;
+    }
+
     let approvedItem: Post | null = null;
     setPosts((prev) => {
       const updated = prev.map((p) => {
@@ -1122,6 +1193,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const rejectPost = (postId: string, reason: string) => {
+    if (currentRole !== "super_admin" && currentRole !== "teacher") {
+      setIsAdminPinModalOpen(true);
+      showToast("Chỉ Ban Quản trị / Thầy Cô Cố vấn mới có quyền từ chối bài viết!", "error");
+      return;
+    }
+
     let rejectedItem: Post | null = null;
     setPosts((prev) => {
       const updated = prev.map((p) => {
@@ -1152,6 +1229,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deletePost = (postId: string) => {
     const target = posts.find((p) => p.id === postId);
+    if (!target) return;
+
+    // Security check: Only super_admin/teacher or author of pending post can delete
+    const isSuperAdmin = currentRole === "super_admin" || currentRole === "teacher";
+    const isAuthorOfPending = target.authorId === currentUser.id && target.status === "pending_review";
+
+    if (!isSuperAdmin && !isAuthorOfPending) {
+      setIsAdminPinModalOpen(true);
+      showToast("Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền xoá bài viết!", "error");
+      return;
+    }
+
     setPosts((prev) => {
       const updated = prev.filter((p) => p.id !== postId);
       try {
@@ -1170,6 +1259,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const unpublishPost = (postId: string) => {
+    if (currentRole !== "super_admin" && currentRole !== "teacher") {
+      setIsAdminPinModalOpen(true);
+      showToast("Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền thu hồi duyệt bài viết!", "error");
+      return;
+    }
+
     let unpublishedItem: Post | null = null;
     setPosts((prev) => {
       const updated = prev.map((p) => {
@@ -1664,6 +1759,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsAuthenticated,
         isAuthModalOpen,
         setIsAuthModalOpen,
+        isAdminPinModalOpen,
+        setIsAdminPinModalOpen,
+        verifyAdminPin,
         isAccountSettingsModalOpen,
         setIsAccountSettingsModalOpen,
         loginWithGoogle,

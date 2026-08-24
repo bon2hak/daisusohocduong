@@ -27,6 +27,7 @@ import { StudentWorkDetailModal } from "./components/modals/StudentWorkDetailMod
 import { AuthModal } from "./components/modals/AuthModal";
 import { AccountSettingsModal } from "./components/modals/AccountSettingsModal";
 import { EmailPermissionModal } from "./components/modals/EmailPermissionModal";
+import { AdminPinModal } from "./components/modals/AdminPinModal";
 import {
   Globe,
   BookOpen,
@@ -106,6 +107,7 @@ const MainContent: React.FC = () => {
 
       {/* Global Modals */}
       <AuthModal />
+      <AdminPinModal />
       <AccountSettingsModal />
       <EmailPermissionModal />
       <PostDetailModal />
