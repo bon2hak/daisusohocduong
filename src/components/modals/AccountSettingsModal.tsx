@@ -57,10 +57,13 @@ const CLUB_ROLE_PRESETS = {
   ],
   teacher: [
     "Chủ nhiệm Câu lạc bộ",
-    "Cố vấn Kỹ thuật & Chuyển đổi số",
-    "Cố vấn Kiểm định & Đánh giá",
-    "Cố vấn Truyền thông & Ấn phẩm số",
-    "Cố vấn Công dân số & Tuyên truyền",
+    "Cố vấn Kỹ thuật và Chuyển đổi số",
+    "Cố vấn Đánh giá và Kiểm định chất lượng",
+    "Cố vấn AI và Công nghệ học tập",
+    "Cố vấn Dữ liệu và Hỗ trợ giáo viên",
+    "Cố vấn Công dân số và Tuyên truyền",
+    "Cố vấn Truyền thông số",
+    "Cố vấn Tâm lý học đường",
     "Giáo viên Cố vấn Chuyên môn",
   ],
 };
@@ -74,9 +77,13 @@ const CLUB_DUTIES_PRESETS = {
   ],
   teacher: [
     "Chỉ đạo toàn diện, phê duyệt bài viết và ban hành nội dung số trên cổng thông tin.",
-    "Quản trị kỹ thuật, bảo đảm an ninh mạng và duyệt sản phẩm số của học sinh.",
-    "Tập huấn kỹ năng số, hướng dẫn học sinh ứng dụng AI an toàn và tổ chức chuyên đề.",
-    "Đánh giá chất lượng sản phẩm số và trao giải thưởng thi đua học đường.",
+    "Tư vấn các nền tảng số phù hợp, hỗ trợ kỹ thuật và kiểm tra tính khả thi sản phẩm số.",
+    "Theo dõi tiến độ các tổ, kiểm tra minh chứng hoạt động và đánh giá kết quả thành viên.",
+    "Định hướng AI trong giáo dục và hướng dẫn Tổ AI học tập.",
+    "Hướng dẫn khảo sát số và hỗ trợ giáo viên ứng dụng công cụ số.",
+    "Phụ trách nội dung giáo dục công dân số và hướng dẫn Tổ An toàn, Văn hóa số.",
+    "Quản lý hình ảnh truyền thông CLB và hướng dẫn Tổ Truyền thông số.",
+    "Tư vấn tâm lý học đường, an toàn cảm xúc trong môi trường số và hỗ trợ giải tỏa áp lực.",
   ],
 };
 

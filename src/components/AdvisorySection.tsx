@@ -11,6 +11,7 @@ import {
   Brain,
   Database,
   Megaphone,
+  HeartHandshake,
   X,
   Camera,
   Edit3,
@@ -44,6 +45,8 @@ export const AdvisorySection: React.FC = () => {
         return <Users className="w-5 h-5 text-cyan-500" />;
       case "advisor_07":
         return <Megaphone className="w-5 h-5 text-rose-500" />;
+      case "advisor_08":
+        return <HeartHandshake className="w-5 h-5 text-teal-500" />;
       default:
         return <GraduationCap className="w-5 h-5 text-blue-500" />;
     }
@@ -57,6 +60,7 @@ export const AdvisorySection: React.FC = () => {
     if (filterRole === "tech_ai") return advisor.id === "advisor_02" || advisor.id === "advisor_04";
     if (filterRole === "quality_data") return advisor.id === "advisor_03" || advisor.id === "advisor_05";
     if (filterRole === "comm_culture") return advisor.id === "advisor_06" || advisor.id === "advisor_07";
+    if (filterRole === "psychology") return advisor.id === "advisor_08";
     return true;
   });
 
@@ -173,6 +177,16 @@ export const AdvisorySection: React.FC = () => {
           >
             Truyền thông & Công dân số
           </button>
+          <button
+            onClick={() => setFilterRole("psychology")}
+            className={`px-3 py-1.5 rounded-xl font-medium transition-all ${
+              filterRole === "psychology"
+                ? "bg-teal-600 text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            Tâm lý học đường
+          </button>
         </div>
       </div>
 
@@ -258,8 +272,9 @@ export const AdvisorySection: React.FC = () => {
 
               {/* Duties highlight snippet */}
               <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 text-xs text-slate-600 mb-3 space-y-1">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Nhiệm vụ trọng tâm:
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-blue-600" />
+                  <span>Nhiệm vụ xuyên năm:</span>
                 </div>
                 <div className="text-[11px] line-clamp-2 leading-relaxed text-slate-700">
                   • {advisor.responsibilities[0]}
@@ -273,7 +288,7 @@ export const AdvisorySection: React.FC = () => {
                   <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">
-                  {advisor.responsibilities.length} phân nhiệm
+                  {advisor.responsibilities.length} nhiệm vụ
                 </span>
               </div>
             </div>
@@ -441,7 +456,7 @@ export const AdvisorySection: React.FC = () => {
               {/* Bio description */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                  Giới thiệu & Vai trò
+                  Giới thiệu & Đơn vị công tác
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
                   {selectedAdvisor.bio}
@@ -453,10 +468,10 @@ export const AdvisorySection: React.FC = () => {
                 <div className="flex items-center justify-between mb-2.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                    <span>Danh sách phân công nhiệm vụ chi tiết</span>
+                    <span>Nhiệm vụ xuyên năm</span>
                   </h4>
                   <span className="text-[11px] text-slate-400 font-medium">
-                    Ban hành theo Quyết định thành lập CLB
+                    Kế hoạch hoạt động CLB Đại sứ số
                   </span>
                 </div>
 

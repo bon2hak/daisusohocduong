@@ -37,17 +37,16 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
     name: "Thầy Đặng Tiến Ninh",
     role: "Cố vấn Kỹ thuật và Chuyển đổi số",
     roleType: "advisor",
-    department: "Tổ Kỹ thuật & Hạ tầng Số",
+    department: "Tổ Kỹ thuật & Chuyển đổi số",
     avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80",
-    badge: "Kỹ thuật & Chuyển đổi số",
+    badge: "Kỹ thuật & CĐS",
     color: "from-sky-600 to-blue-700",
     responsibilities: [
-      "Phụ trách giải pháp kỹ thuật, hệ thống cổng thông tin và an toàn hạ tầng số",
-      "Hướng dẫn học sinh thực hành bảo mật tài khoản 2FA, an ninh mạng và chống mã độc",
-      "Tư vấn triển khai các nền tảng chuyển đổi số trong dạy học và quản lý học đường",
-      "Hỗ trợ kỹ thuật cho các cuộc thi sáng tạo công nghệ và sự kiện số trực tuyến"
+      "Tư vấn các nền tảng số phù hợp.",
+      "Hỗ trợ xử lý các vấn đề kỹ thuật.",
+      "Kiểm tra tính khả thi của các sản phẩm số."
     ],
-    bio: "Cố vấn Kỹ thuật & Chuyển đổi số Trường THCS Đề Thám. Nhiều năm kinh nghiệm triển khai phần mềm giáo dục và hạ tầng mạng an toàn.",
+    bio: "Cố vấn Kỹ thuật & Chuyển đổi số Trường THCS Đề Thám. Nhiều năm kinh nghiệm triển khai nền tảng số giáo dục và kiểm định kỹ thuật sản phẩm số.",
     contactEmail: "ninhdt@detham.edu.vn"
   },
   {
@@ -55,17 +54,16 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
     name: "Cô Nguyễn Thị Mùi",
     role: "Cố vấn Đánh giá và Kiểm định chất lượng",
     roleType: "advisor",
-    department: "Ban Kiểm định & Khảo thí",
+    department: "Tổ Đánh giá & Kiểm định chất lượng",
     avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
     badge: "Đánh giá & Kiểm định",
     color: "from-emerald-600 to-teal-700",
     responsibilities: [
-      "Xây dựng bộ tiêu chí đánh giá năng lực số, chuẩn đầu ra cho Đại sứ số các khối lớp",
-      "Kiểm định chất lượng các bài giảng e-Learning, ngân hàng đề quiz và sản phẩm STEM",
-      "Thẩm định tính chính xác của các bài viết học thuật và cẩm nang số xuất bản",
-      "Tổng hợp, đánh giá mức độ tiến bộ và hiệu quả rèn luyện kỹ năng số toàn trường"
+      "Theo dõi tiến độ các tổ.",
+      "Kiểm tra minh chứng hoạt động.",
+      "Đánh giá kết quả từng thành viên."
     ],
-    bio: "Cố vấn Đánh giá & Kiểm định chất lượng Trường THCS Đề Thám. Chuyên gia về xây dựng khung chuẩn năng lực số và phương pháp kiểm tra đánh giá hiện đại.",
+    bio: "Cố vấn Đánh giá & Kiểm định chất lượng Trường THCS Đề Thám. Chuyên gia theo dõi tiến độ hoạt động, kiểm tra minh chứng và đánh giá năng lực thành viên.",
     contactEmail: "muint@detham.edu.vn"
   },
   {
@@ -73,17 +71,15 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
     name: "Thầy Nguyễn Tấn Nhật",
     role: "Cố vấn AI và Công nghệ học tập",
     roleType: "advisor",
-    department: "Tổ Nghiên cứu AI & Ứng dụng STEM",
+    department: "Tổ AI & Công nghệ học tập",
     avatar: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80",
     badge: "AI & Công nghệ học tập",
     color: "from-purple-600 to-indigo-800",
     responsibilities: [
-      "Nghiên cứu và hướng dẫn học sinh ứng dụng AI có đạo đức (Prompt Engineering, Fact-checking)",
-      "Phát triển kho câu lệnh AI trợ giảng, trợ lý học tập cá nhân hóa cho học sinh",
-      "Tổ chức các workshop trải nghiệm công nghệ mới (GenAI, Robotics, Lập trình)",
-      "Định hướng học sinh sử dụng công cụ thông minh để tăng hiệu suất học tập, không sao chép"
+      "Định hướng AI trong giáo dục.",
+      "Hướng dẫn Tổ AI học tập."
     ],
-    bio: "Cố vấn AI & Công nghệ học tập Trường THCS Đề Thám. Đam mê tiên phong đưa các giải pháp Trí tuệ nhân tạo thế hệ mới vào không gian lớp học tương tác.",
+    bio: "Cố vấn AI & Công nghệ học tập Trường THCS Đề Thám. Tiên phong định hướng ứng dụng Trí tuệ nhân tạo và công nghệ thông minh trong học tập.",
     contactEmail: "nhatnt@detham.edu.vn"
   },
   {
@@ -91,17 +87,15 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
     name: "Thầy Nguyễn Phú Dũng",
     role: "Cố vấn Dữ liệu và Hỗ trợ giáo viên",
     roleType: "advisor",
-    department: "Tổ Dữ liệu Giáo dục & Bồi dưỡng Chuyên môn",
+    department: "Tổ Dữ liệu & Hỗ trợ Giáo viên",
     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
     badge: "Dữ liệu & Hỗ trợ GV",
     color: "from-amber-600 to-orange-700",
     responsibilities: [
-      "Quản trị cơ sở dữ liệu học tập số, phân tích số liệu thi đua và điểm rèn luyện số",
-      "Tập huấn và hỗ trợ các thầy cô giáo bộ môn ứng dụng công nghệ trong soạn giảng",
-      "Xây dựng kho học liệu số dùng chung và phân quyền dữ liệu học sinh khoa học",
-      "Báo cáo thống kê chỉ số chuyển đổi số phục vụ công tác điều hành của Ban Giám hiệu"
+      "Hướng dẫn khảo sát số.",
+      "Hỗ trợ giáo viên ứng dụng công cụ số."
     ],
-    bio: "Cố vấn Dữ liệu & Hỗ trợ giáo viên Trường THCS Đề Thám. Chuyên gia phân tích dữ liệu sư phạm và hỗ trợ kỹ thuật số cho đội ngũ giáo viên toàn trường.",
+    bio: "Cố vấn Dữ liệu & Hỗ trợ giáo viên Trường THCS Đề Thám. Hướng dẫn nghiệp vụ khảo sát dữ liệu số và đồng hành cùng thầy cô ứng dụng công nghệ.",
     contactEmail: "dungnp@detham.edu.vn"
   },
   {
@@ -109,17 +103,15 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
     name: "Thầy Trần Minh Đức",
     role: "Cố vấn Công dân số và Tuyên truyền",
     roleType: "advisor",
-    department: "Tổ Giáo dục Kỹ năng & Đoàn Đội",
+    department: "Tổ Công dân số & An toàn Văn hóa số",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
     badge: "Công dân số & Tuyên truyền",
     color: "from-cyan-600 to-blue-800",
     responsibilities: [
-      "Tuyên truyền pháp luật An ninh mạng, quy tắc ứng xử văn hóa trên Internet (Netiquette)",
-      "Tổ chức các diễn đàn, tọa đàm phòng chống bạo lực mạng (Cyberbullying) và tin giả",
-      "Xây dựng mạng lưới Đại sứ số nòng cốt tại các chi đội, lớp học để lan tỏa văn hóa số",
-      "Hỗ trợ tư vấn tâm lý học đường khi học sinh gặp sự cố tiêu cực trong môi trường mạng"
+      "Phụ trách nội dung giáo dục công dân số.",
+      "Hướng dẫn Tổ An toàn và Văn hóa số."
     ],
-    bio: "Cố vấn Công dân số & Tuyên truyền Trường THCS Đề Thám. Đồng hành xây dựng môi trường mạng lành mạnh, an toàn và đầy lòng nhân ái cho học sinh.",
+    bio: "Cố vấn Công dân số & Tuyên truyền Trường THCS Đề Thám. Phụ trách bồi dưỡng năng lực công dân số và xây dựng nếp sống văn hóa mạng lành mạnh.",
     contactEmail: "ductm@detham.edu.vn"
   },
   {
@@ -127,18 +119,33 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
     name: "Cô Phạm Thị Thanh Cảnh",
     role: "Cố vấn Truyền thông số",
     roleType: "advisor",
-    department: "Ban Biên tập & Truyền thông Đa phương tiện",
+    department: "Tổ Truyền thông số",
     avatar: "https://images.unsplash.com/photo-1580894732444-8ecded7900cd?w=150&auto=format&fit=crop&q=80",
     badge: "Truyền thông số",
     color: "from-rose-600 to-pink-700",
     responsibilities: [
-      "Quản lý nội dung trang tin điện tử, Fanpage, Podcast và kênh truyền thông CLB",
-      "Hướng dẫn học sinh kỹ năng thiết kế đồ họa (Canva), quay dựng video ngắn học đường",
-      "Phát động và chấm điểm các chiến dịch truyền thông lan tỏa gương sáng Đại sứ số",
-      "Biên tập các bản tin số, infographic kiến thức và ấn phẩm trực quan hấp dẫn"
+      "Quản lý hình ảnh truyền thông CLB.",
+      "Hướng dẫn Tổ Truyền thông số."
     ],
-    bio: "Cố vấn Truyền thông số Trường THCS Đề Thám. Phụ trách sản xuất ấn phẩm số sáng tạo và truyền cảm hứng năng động cho thế hệ học sinh Gen Z.",
+    bio: "Cố vấn Truyền thông số Trường THCS Đề Thám. Phụ trách quản lý hình ảnh truyền thông và dẫn dắt Tổ Truyền thông số sáng tạo ấn phẩm học đường.",
     contactEmail: "canhpt@detham.edu.vn"
+  },
+  {
+    id: "advisor_08",
+    name: "Thầy Bùi Kim Kỳ",
+    role: "Cố vấn Tâm lý học đường",
+    roleType: "advisor",
+    department: "Tổ Tư vấn Tâm lý Học đường & Kỹ năng Sống",
+    avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80",
+    badge: "Tâm lý học đường",
+    color: "from-teal-600 to-emerald-700",
+    responsibilities: [
+      "Tư vấn tâm lý học đường và an toàn cảm xúc trong môi trường số.",
+      "Hỗ trợ học sinh giải tỏa áp lực, phòng ngừa bạo lực mạng và nghiện Internet.",
+      "Đồng hành cùng Đại sứ số xây dựng văn hóa giao tiếp tích cực, lành mạnh."
+    ],
+    bio: "Cố vấn Tâm lý học đường Trường THCS Đề Thám. Đồng hành hỗ trợ tâm lý, lắng nghe và giải tỏa căng thẳng cho học sinh trong không gian học tập và mạng xã hội.",
+    contactEmail: "kybk@detham.edu.vn"
   }
 ];
 
@@ -180,8 +187,8 @@ export const INITIAL_EMAIL_PERMISSIONS: EmailPermission[] = [
     role: "teacher",
     roleTitle: "Cố vấn Kỹ thuật & Chuyển đổi số",
     accountType: "teacher",
-    clubRole: "Cố vấn Kỹ thuật & Hạ tầng Số",
-    clubDuties: "Quản trị kỹ thuật, giải pháp an toàn mạng, duyệt bài và hướng dẫn học sinh ứng dụng AI",
+    clubRole: "Tổ Kỹ thuật & Chuyển đổi số",
+    clubDuties: "Tư vấn nền tảng số, hỗ trợ xử lý kỹ thuật, kiểm tra tính khả thi sản phẩm số",
     classroom: "Tổ Kỹ thuật & Chuyển đổi số",
     grantedBy: "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
     grantedAt: "05/09/2025",
@@ -195,8 +202,8 @@ export const INITIAL_EMAIL_PERMISSIONS: EmailPermission[] = [
     role: "teacher",
     roleTitle: "Cố vấn Đánh giá & Kiểm định chất lượng",
     accountType: "teacher",
-    clubRole: "Ban Kiểm định & Khảo thí",
-    clubDuties: "Kiểm định chất lượng học liệu số, ngân hàng đề quiz và sản phẩm STEM",
+    clubRole: "Tổ Đánh giá & Kiểm định chất lượng",
+    clubDuties: "Theo dõi tiến độ các tổ, kiểm tra minh chứng hoạt động, đánh giá kết quả thành viên",
     classroom: "Ban Kiểm định & Khảo thí",
     grantedBy: "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
     grantedAt: "05/09/2025",
@@ -210,8 +217,8 @@ export const INITIAL_EMAIL_PERMISSIONS: EmailPermission[] = [
     role: "teacher",
     roleTitle: "Cố vấn AI & Công nghệ học tập",
     accountType: "teacher",
-    clubRole: "Tổ Nghiên cứu AI & Ứng dụng STEM",
-    clubDuties: "Hướng dẫn học sinh ứng dụng AI an toàn, thẩm định bài giảng công nghệ",
+    clubRole: "Tổ AI & Công nghệ học tập",
+    clubDuties: "Định hướng AI trong giáo dục, hướng dẫn Tổ AI học tập",
     classroom: "Tổ Nghiên cứu AI & STEM",
     grantedBy: "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
     grantedAt: "05/09/2025",
@@ -220,6 +227,66 @@ export const INITIAL_EMAIL_PERMISSIONS: EmailPermission[] = [
   },
   {
     id: "perm_06",
+    email: "dungnp@detham.edu.vn",
+    name: "Thầy Nguyễn Phú Dũng",
+    role: "teacher",
+    roleTitle: "Cố vấn Dữ liệu & Hỗ trợ giáo viên",
+    accountType: "teacher",
+    clubRole: "Tổ Dữ liệu & Hỗ trợ Giáo viên",
+    clubDuties: "Hướng dẫn khảo sát số, hỗ trợ giáo viên ứng dụng công cụ số",
+    classroom: "Tổ Dữ liệu Giáo dục",
+    grantedBy: "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+    grantedAt: "05/09/2025",
+    status: "active",
+    notes: "Giáo viên Cố vấn Dữ liệu",
+  },
+  {
+    id: "perm_07",
+    email: "ductm@detham.edu.vn",
+    name: "Thầy Trần Minh Đức",
+    role: "teacher",
+    roleTitle: "Cố vấn Công dân số & Tuyên truyền",
+    accountType: "teacher",
+    clubRole: "Tổ Công dân số & An toàn Văn hóa số",
+    clubDuties: "Phụ trách nội dung giáo dục công dân số, hướng dẫn Tổ An toàn và Văn hóa số",
+    classroom: "Tổ Đoàn Đội & Kỹ năng",
+    grantedBy: "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+    grantedAt: "05/09/2025",
+    status: "active",
+    notes: "Giáo viên Cố vấn Công dân số",
+  },
+  {
+    id: "perm_08",
+    email: "canhpt@detham.edu.vn",
+    name: "Cô Phạm Thị Thanh Cảnh",
+    role: "teacher",
+    roleTitle: "Cố vấn Truyền thông số",
+    accountType: "teacher",
+    clubRole: "Tổ Truyền thông số",
+    clubDuties: "Quản lý hình ảnh truyền thông CLB, hướng dẫn Tổ Truyền thông số",
+    classroom: "Ban Truyền thông Đa phương tiện",
+    grantedBy: "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+    grantedAt: "05/09/2025",
+    status: "active",
+    notes: "Giáo viên Cố vấn Truyền thông",
+  },
+  {
+    id: "perm_09",
+    email: "kybk@detham.edu.vn",
+    name: "Thầy Bùi Kim Kỳ",
+    role: "teacher",
+    roleTitle: "Cố vấn Tâm lý học đường",
+    accountType: "teacher",
+    clubRole: "Tổ Tư vấn Tâm lý Học đường & Kỹ năng Sống",
+    clubDuties: "Tư vấn tâm lý học đường, an toàn cảm xúc trong môi trường số, hỗ trợ giải tỏa áp lực",
+    classroom: "Tổ Tâm lý & Kỹ năng",
+    grantedBy: "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+    grantedAt: "05/09/2025",
+    status: "active",
+    notes: "Giáo viên Cố vấn Tâm lý",
+  },
+  {
+    id: "perm_10",
     email: "minhanh.8a@detham.edu.vn",
     name: "Nguyễn Minh Anh",
     role: "ambassador",
@@ -234,7 +301,7 @@ export const INITIAL_EMAIL_PERMISSIONS: EmailPermission[] = [
     notes: "Đại sứ số nòng cốt khối 8",
   },
   {
-    id: "perm_07",
+    id: "perm_11",
     email: "tuankiet.7b@detham.edu.vn",
     name: "Trần Tuấn Kiệt",
     role: "student",
