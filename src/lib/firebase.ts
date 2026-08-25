@@ -4,9 +4,22 @@ import firebaseConfig from "../../firebase-applet-config.json";
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Use the databaseId provided in firebase-applet-config.json
-export const db = firebaseConfig.firestoreDatabaseId
-  ? initializeFirestore(app, {}, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+const dbId = firebaseConfig.firestoreDatabaseId;
 
+let firestoreDb: ReturnType<typeof getFirestore>;
+
+try {
+  firestoreDb = dbId
+    ? initializeFirestore(app, {
+        experimentalAutoDetectLongPolling: true,
+      }, dbId)
+    : initializeFirestore(app, {
+        experimentalAutoDetectLongPolling: true,
+      });
+} catch {
+  firestoreDb = dbId ? getFirestore(app, dbId) : getFirestore(app);
+}
+
+export const db = firestoreDb;
 export default app;
+
