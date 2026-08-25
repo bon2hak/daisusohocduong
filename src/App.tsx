@@ -12,6 +12,7 @@ import { DocumentLibraryView } from "./components/DocumentLibraryView";
 import { LeaderboardView } from "./components/LeaderboardView";
 import { EventsView } from "./components/EventsView";
 import { DigitalPortfolioView } from "./components/DigitalPortfolioView";
+import { MentalHealthCorner } from "./components/mental_health/MentalHealthCorner";
 import { CreatePostModal } from "./components/CreatePostModal";
 import { SubmitWorkModal } from "./components/SubmitWorkModal";
 import { ModerationModal } from "./components/ModerationModal";
@@ -55,6 +56,8 @@ const MainContent: React.FC = () => {
         return <StudentCornerView />;
       case "ai-corner":
         return <AIAssistantView />;
+      case "counseling":
+        return <MentalHealthCorner />;
       case "videos":
         return <VideoHubView />;
       case "documents":

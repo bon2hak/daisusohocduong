@@ -22,6 +22,9 @@ import {
   Edit3,
   Trash2,
   Plus,
+  HeartHandshake,
+  Wind,
+  PhoneCall,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { AdvisorySection } from "./AdvisorySection";
@@ -176,6 +179,101 @@ export const HomeView: React.FC = () => {
           <div>
             <div className="text-2xl font-black text-slate-900">98.5%</div>
             <div className="text-xs font-medium text-slate-500">Đạt chuẩn an toàn mạng</div>
+          </div>
+        </div>
+      </section>
+
+      {/* 🌟 2.5 CỐ VẤN HỌC ĐƯỜNG & SỨC KHỎE TINH THẦN (FEATURED CORNER) */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-800 via-emerald-800 to-slate-900 text-white p-6 sm:p-8 shadow-lg border border-teal-600/30">
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-emerald-200 text-xs font-bold uppercase tracking-wider">
+                <HeartHandshake className="w-4 h-4 text-emerald-300 animate-pulse" />
+                Không Gian Lắng Nghe & Đồng Hành
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2">
+                🧠 CỐ VẤN HỌC ĐƯỜNG & SỨC KHỎE TINH THẦN
+              </h2>
+              <p className="text-emerald-100 text-sm font-medium italic">
+                “Bạn không cần phải đối mặt với mọi chuyện một mình.”
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-white/15 text-xs text-emerald-100">
+                <img
+                  src="https://images.unsplash.com/photo-1544717305-2782549b5136?w=120&auto=format&fit=crop&q=80"
+                  alt="Thầy Bùi Kim Kỳ"
+                  className="w-7 h-7 rounded-full object-cover border border-emerald-300"
+                />
+                <span>Cố vấn: <strong>Thầy Bùi Kim Kỳ</strong></span>
+              </div>
+
+              <button
+                onClick={() => setActiveTab("counseling")}
+                className="bg-white hover:bg-emerald-50 text-teal-900 px-4 py-2 rounded-2xl font-bold text-xs shadow-md hover:shadow-lg transition-all shrink-0"
+              >
+                Vào Không Gian Tâm Lý ›
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Pillars Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div
+              onClick={() => setActiveTab("counseling")}
+              className="bg-white/10 hover:bg-white/15 border border-white/15 rounded-2xl p-4 cursor-pointer transition-all hover:scale-[1.02] group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-teal-500/30 text-teal-200 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-sm text-white mb-1">💬 Mình muốn chia sẻ</h3>
+              <p className="text-xs text-emerald-100/80 leading-relaxed">
+                Gửi tâm sự ẩn danh hoặc bảo mật tới Thầy Cô Cố vấn học đường.
+              </p>
+            </div>
+
+            <div
+              onClick={() => setActiveTab("counseling")}
+              className="bg-white/10 hover:bg-white/15 border border-white/15 rounded-2xl p-4 cursor-pointer transition-all hover:scale-[1.02] group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-sky-500/30 text-sky-200 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-sm text-white mb-1">📚 Mình muốn tìm hiểu</h3>
+              <p className="text-xs text-sky-100/80 leading-relaxed">
+                8 cẩm nang gỡ rối áp lực thi cử, bạn bè, mạng xã hội & cảm xúc.
+              </p>
+            </div>
+
+            <div
+              onClick={() => setActiveTab("counseling")}
+              className="bg-white/10 hover:bg-white/15 border border-white/15 rounded-2xl p-4 cursor-pointer transition-all hover:scale-[1.02] group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/30 text-emerald-200 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <Wind className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-sm text-white mb-1">🧘 Mình muốn thư giãn</h3>
+              <p className="text-xs text-emerald-100/80 leading-relaxed">
+                Bài tập hít thở 1-3 phút, âm thanh sóng biển mưa rơi & nhật ký cảm xúc.
+              </p>
+            </div>
+
+            <div
+              onClick={() => setActiveTab("counseling")}
+              className="bg-white/10 hover:bg-white/15 border border-white/15 rounded-2xl p-4 cursor-pointer transition-all hover:scale-[1.02] group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-rose-500/30 text-rose-200 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <PhoneCall className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-sm text-white mb-1">🆘 Cần người lớn giúp</h3>
+              <p className="text-xs text-rose-100/80 leading-relaxed">
+                Hệ thống hỗ trợ 3 cấp độ, Tổng đài quốc gia 111 (Miễn phí 24/7).
+              </p>
+            </div>
           </div>
         </div>
       </section>

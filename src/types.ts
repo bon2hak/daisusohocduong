@@ -278,3 +278,82 @@ export interface LeaderboardEntry {
   badgesCount: number;
   title: string;
 }
+
+export type MoodScore = 1 | 2 | 3 | 4 | 5;
+export type MoodFactor =
+  | "study"
+  | "family"
+  | "friends"
+  | "social_media"
+  | "health"
+  | "other";
+
+export interface MoodCheckIn {
+  id: string;
+  userId?: string;
+  userEmail?: string;
+  userName?: string;
+  score: MoodScore;
+  moodLabel: string;
+  emoji: string;
+  factors: MoodFactor[];
+  note?: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  createdAt: number;
+}
+
+export type CounselingCategory =
+  | "academic_pressure"
+  | "exam_stress"
+  | "friend_conflict"
+  | "cyberbullying"
+  | "emotion_control"
+  | "self_esteem"
+  | "social_media_habit"
+  | "family_pressure"
+  | "other";
+
+export interface CounselingMessage {
+  id: string;
+  userId?: string;
+  senderName: string;
+  senderEmail?: string;
+  senderClass?: string;
+  isAnonymous: boolean;
+  category: CounselingCategory;
+  categoryLabel: string;
+  title: string;
+  content: string;
+  status: "sent" | "received" | "in_progress" | "replied";
+  createdAt: string;
+  urgentLevel: "normal" | "need_support" | "urgent";
+  reply?: string;
+  repliedBy?: string;
+  repliedAt?: string;
+}
+
+export interface MentalHealthArticle {
+  id: string;
+  title: string;
+  category: string;
+  summary: string;
+  content: string;
+  readTime: string;
+  icon: string;
+  tips: string[];
+}
+
+export interface EmotionJournalEntry {
+  id: string;
+  userId?: string;
+  date: string;
+  moodEmoji: string;
+  moodScore: number;
+  title: string;
+  content: string;
+  gratitude?: string;
+  reflectionPrompt?: string;
+  createdAt: number;
+}
+

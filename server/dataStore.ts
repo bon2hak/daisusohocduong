@@ -38,6 +38,7 @@ export interface AppServerStore {
   leaderboard: any[];
   events: any[];
   advisors: any[];
+  counselingMessages: any[];
   userProfiles: Record<string, any>;
   lastUpdated: string;
 }
@@ -57,6 +58,7 @@ function getInitialStore(): AppServerStore {
     leaderboard: [...INITIAL_LEADERBOARD],
     events: [...INITIAL_EVENTS],
     advisors: [...CLUB_ADVISORY_BOARD],
+    counselingMessages: [],
     userProfiles: {},
     lastUpdated: new Date().toISOString(),
   };
@@ -84,6 +86,7 @@ export function loadStore(): AppServerStore {
           leaderboard: Array.isArray(parsed.leaderboard) && parsed.leaderboard.length > 0 ? parsed.leaderboard : initial.leaderboard,
           events: Array.isArray(parsed.events) && parsed.events.length > 0 ? parsed.events : initial.events,
           advisors: Array.isArray(parsed.advisors) && parsed.advisors.length > 0 ? parsed.advisors : initial.advisors,
+          counselingMessages: Array.isArray(parsed.counselingMessages) ? parsed.counselingMessages : initial.counselingMessages,
           userProfiles: parsed.userProfiles && typeof parsed.userProfiles === "object" ? parsed.userProfiles : initial.userProfiles,
           lastUpdated: parsed.lastUpdated || new Date().toISOString(),
         };

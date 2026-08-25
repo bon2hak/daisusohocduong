@@ -24,6 +24,9 @@ import {
   EmailPermission,
   SavedGoogleAccount,
   ClubAdvisor,
+  MoodCheckIn,
+  CounselingMessage,
+  EmotionJournalEntry,
 } from "../types";
 import {
   MOCK_USERS,
@@ -124,6 +127,7 @@ export type NavTab =
   | "skills"
   | "student-corner"
   | "ai-corner"
+  | "counseling"
   | "videos"
   | "documents"
   | "leaderboard"
@@ -287,6 +291,19 @@ interface AppContextType {
   setIsAddPromptModalOpen: (open: boolean) => void;
   isAddAIToolModalOpen: boolean;
   setIsAddAIToolModalOpen: (open: boolean) => void;
+
+  // 8. Góc Sức Khỏe Tinh Thần & Cố Vấn Học Đường
+  moodCheckIns: MoodCheckIn[];
+  addMoodCheckIn: (checkIn: Omit<MoodCheckIn, "id" | "createdAt">) => void;
+  counselingMessages: CounselingMessage[];
+  sendCounselingMessage: (msg: Omit<CounselingMessage, "id" | "createdAt" | "status">) => Promise<boolean>;
+  replyCounselingMessage: (id: string, reply: string) => Promise<boolean>;
+  deleteCounselingMessage: (id: string) => Promise<boolean>;
+  emotionJournals: EmotionJournalEntry[];
+  addEmotionJournal: (entry: Omit<EmotionJournalEntry, "id" | "createdAt">) => void;
+  deleteEmotionJournal: (id: string) => void;
+  isMentalHealthModalOpen: boolean;
+  setIsMentalHealthModalOpen: (open: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -397,6 +414,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem("daisu_advisors");
     return saved ? JSON.parse(saved) : CLUB_ADVISORY_BOARD;
   });
+
+  // 8. Mental Health & Counseling
+  const [moodCheckIns, setMoodCheckIns] = useState<MoodCheckIn[]>(() => {
+    const saved = localStorage.getItem("daisu_mood_checkins");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [counselingMessages, setCounselingMessages] = useState<CounselingMessage[]>(() => {
+    const saved = localStorage.getItem("daisu_counseling_messages");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [emotionJournals, setEmotionJournals] = useState<EmotionJournalEntry[]>(() => {
+    const saved = localStorage.getItem("daisu_emotion_journals");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [isMentalHealthModalOpen, setIsMentalHealthModalOpen] = useState(false);
 
   // Real-time Cloud Synchronization via Firebase Firestore & Server Backup
   useEffect(() => {
@@ -578,6 +613,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (Array.isArray(d.advisors) && d.advisors.length > 0) {
               setAdvisors(d.advisors);
               localStorage.setItem("daisu_advisors", JSON.stringify(d.advisors));
+            }
+            if (Array.isArray(d.counselingMessages)) {
+              setCounselingMessages(d.counselingMessages);
+              localStorage.setItem("daisu_counseling_messages", JSON.stringify(d.counselingMessages));
             }
             if (d.userProfiles && typeof d.userProfiles === "object") {
               setRegisteredProfiles((prev) => {
@@ -2173,6 +2212,134 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast("Đã xoá sự kiện khỏi kế hoạch hoạt động!", "info");
   };
 
+  // 8. GÓC SỨC KHỎE TINH THẦN & CỐ VẤN HỌC ĐƯỜNG
+  const addMoodCheckIn = (checkInData: Omit<MoodCheckIn, "id" | "createdAt">) => {
+    const newCheckIn: MoodCheckIn = {
+      ...checkInData,
+      id: "mood_" + Date.now(),
+      createdAt: Date.now(),
+    };
+    const updated = [newCheckIn, ...moodCheckIns];
+    setMoodCheckIns(updated);
+    try {
+      localStorage.setItem("daisu_mood_checkins", JSON.stringify(updated));
+    } catch {}
+    addPointsToUser(15, "Check-in cảm xúc & Sức khỏe tinh thần hôm nay");
+    showToast("Đã lưu Check-in cảm xúc hôm nay! Cảm ơn bạn đã lắng nghe chính mình.", "success");
+  };
+
+  const sendCounselingMessage = async (
+    msgData: Omit<CounselingMessage, "id" | "createdAt" | "status">
+  ): Promise<boolean> => {
+    const newMsg: CounselingMessage = {
+      ...msgData,
+      id: "cmsg_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+      status: "sent",
+      createdAt: new Date().toISOString(),
+    };
+
+    // Optimistic local update
+    const updated = [newMsg, ...counselingMessages];
+    setCounselingMessages(updated);
+    try {
+      localStorage.setItem("daisu_counseling_messages", JSON.stringify(updated));
+    } catch {}
+
+    // Send to backend API
+    try {
+      const res = await fetch("/api/counseling/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newMsg),
+      });
+      if (res.ok) {
+        showToast("Tâm sự của bạn đã được gửi an toàn & bảo mật tới Thầy Cô cố vấn!", "success");
+        return true;
+      }
+    } catch (e) {
+      console.warn("Counseling API error:", e);
+    }
+    showToast("Đã lưu tâm sự an toàn trong hộp thư cá nhân của bạn.", "info");
+    return true;
+  };
+
+  const replyCounselingMessage = async (id: string, reply: string): Promise<boolean> => {
+    const target = counselingMessages.find((m) => m.id === id);
+    if (!target) return false;
+
+    const updated = counselingMessages.map((m) =>
+      m.id === id
+        ? {
+            ...m,
+            reply,
+            repliedBy: currentUser.name || "Thầy Bùi Kim Kỳ - Cố vấn Tâm lý học đường",
+            repliedAt: new Date().toISOString(),
+            status: "replied" as const,
+          }
+        : m
+    );
+
+    setCounselingMessages(updated);
+    try {
+      localStorage.setItem("daisu_counseling_messages", JSON.stringify(updated));
+    } catch {}
+
+    try {
+      await fetch(`/api/counseling/messages/${id}/reply`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reply,
+          repliedBy: currentUser.name || "Thầy Bùi Kim Kỳ - Cố vấn Tâm lý học đường",
+        }),
+      });
+      showToast("Đã gửi phản hồi ân cần tới học sinh!", "success");
+      return true;
+    } catch (e) {
+      console.warn("Reply counseling API error:", e);
+      showToast("Đã lưu phản hồi tư vấn thành công!", "success");
+      return true;
+    }
+  };
+
+  const deleteCounselingMessage = async (id: string): Promise<boolean> => {
+    const updated = counselingMessages.filter((m) => m.id !== id);
+    setCounselingMessages(updated);
+    try {
+      localStorage.setItem("daisu_counseling_messages", JSON.stringify(updated));
+    } catch {}
+
+    try {
+      await fetch(`/api/counseling/messages/${id}`, { method: "DELETE" });
+    } catch {}
+    showToast("Đã xóa thư tư vấn!", "info");
+    return true;
+  };
+
+  const addEmotionJournal = (entryData: Omit<EmotionJournalEntry, "id" | "createdAt">) => {
+    const newEntry: EmotionJournalEntry = {
+      ...entryData,
+      id: "jrn_" + Date.now(),
+      createdAt: Date.now(),
+    };
+    const updated = [newEntry, ...emotionJournals];
+    setEmotionJournals(updated);
+    try {
+      localStorage.setItem("daisu_emotion_journals", JSON.stringify(updated));
+    } catch {}
+    addPointsToUser(20, "Viết Nhật ký cảm xúc & Tự phản ánh");
+    showToast("Đã lưu nhật ký cảm xúc riêng tư của bạn!", "success");
+  };
+
+  const deleteEmotionJournal = (id: string) => {
+    const updated = emotionJournals.filter((j) => j.id !== id);
+    setEmotionJournals(updated);
+    try {
+      localStorage.setItem("daisu_emotion_journals", JSON.stringify(updated));
+    } catch {}
+    showToast("Đã xóa trang nhật ký!", "info");
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -2246,6 +2413,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         registerEvent,
         updateEvent,
         deleteEvent,
+
+        // 8. Góc Sức Khỏe Tinh Thần & Cố Vấn Học Đường
+        moodCheckIns,
+        addMoodCheckIn,
+        counselingMessages,
+        sendCounselingMessage,
+        replyCounselingMessage,
+        deleteCounselingMessage,
+        emotionJournals,
+        addEmotionJournal,
+        deleteEmotionJournal,
+        isMentalHealthModalOpen,
+        setIsMentalHealthModalOpen,
 
         // Leaderboard
         leaderboard,

@@ -550,6 +550,171 @@ Trả lời định dạng Markdown có cấu trúc:
     }
   });
 
+  // ==========================================
+  // GÓC CỐ VẤN HỌC ĐƯỜNG & SỨC KHỎE TINH THẦN
+  // ==========================================
+
+  // Trợ lý AI Đồng Hành Sức Khỏe Tinh Thần (MindCare AI)
+  app.post("/api/gemini/mental-health-companion", async (req, res) => {
+    try {
+      const { mood, message, history, userName, userEmail, classroom } = req.body;
+
+      const client = getGeminiClient();
+      if (!client) {
+        // Safe supportive fallback response
+        let fallbackReply = `Chào bạn ${userName || "bạn nhỏ"}! Mình là **Trợ lý AI Đồng Hành** của CLB Đại sứ số.
+`;
+        if (mood) {
+          fallbackReply += `Mình ghi nhận hôm nay bạn đang cảm thấy: **${mood}**.\n\n`;
+        }
+        fallbackReply += `🌿 **Một vài gợi ý nhỏ giúp bạn cảm thấy nhẹ nhõm hơn:**
+1. **Bài tập hít thở 1 phút**: Nhắm mắt lại, hít vào sâu 4 giây, giữ 4 giây và thở ra từ từ 6 giây. Lặp lại 3 lần.
+2. **Uống một ngụm nước ấm** và thả lỏng hai vai.
+3. **Chia sẻ với người lớn tin cậy**: Nếu bạn đang chịu nhiều áp lực, bạn có thể gửi tâm sự bảo mật tới **Thầy Bùi Kim Kỳ (Cố vấn tâm lý học đường)** qua mục "Mình muốn chia sẻ" hoặc trò chuyện cùng Thầy Cô chủ nhiệm nhé!`;
+
+        return res.json({ reply: fallbackReply });
+      }
+
+      const systemInstruction = `Bạn là "Trợ lý AI Đồng Hành & Sức Khỏe Tinh Thần Học Đường" của Trường THCS Đề Thám, thuộc CLB Đại sứ số.
+Đối tượng người dùng: Học sinh THCS (11 - 15 tuổi) và Thầy Cô giáo.
+Học sinh đang trò chuyện: ${userName || "Học sinh"} ${classroom ? `(Lớp ${classroom})` : ""} ${userEmail ? `(Email: ${userEmail})` : ""}.
+Tâm trạng học sinh vừa chọn: ${mood || "Chưa chọn cụ thể"}.
+
+NGUYÊN TẮC VÀ ĐẠO ĐỨC BẮT BUỘC (RẤT QUAN TRỌNG):
+1. **Đồng hành & Lắng nghe**: Luôn trả lời với giọng điệu ân cần, ấm áp, thấu cảm, không phán xét, xưng hô "mình" và "bạn" (hoặc "em" nếu phù hợp).
+2. **TUYỆT ĐỐI KHÔNG CHẨN ĐOÁN BỆNH LÝ**: Không được đưa ra kết luận tâm lý/y khoa như "Bạn bị trầm cảm", "Bạn mắc chứng rối loạn lo âu", "Bạn bị bệnh tâm thần". AI chỉ là người lắng nghe và gợi ý phương pháp tự chăm sóc.
+3. **TUYỆT ĐỐI KHÔNG THAY THẾ CHUYÊN GIA**: Luôn định vị mình là người bạn công nghệ hỗ trợ cảm xúc bước đầu.
+4. **KHÔNG KHUYẾN KHÍCH GIỮ BÍ MẬT NGUY HIỂM**: Nếu học sinh đề cập đến bạo lực học đường, tự làm hại bản thân, xâm hại hoặc bị bắt nạt nghiêm trọng, bạn PHẢI nhẹ nhàng khuyến khích học sinh tìm đến người lớn tin cậy ngay (Thầy Bùi Kim Kỳ - Cố vấn tâm lý, Thầy Cô chủ nhiệm, Cha Mẹ hoặc Tổng đài Quốc gia Bảo vệ Trẻ em 111).
+5. **Gợi ý bài tập thư giãn thực tế**: Đưa ra hướng dẫn hít thở sâu 4-7-8 hoặc Box Breathing, bài tập chạm đất 5-4-3-2-1, viết nhật ký hoặc uống nước nghỉ ngơi.
+6. Ngôn ngữ: Tiếng Việt trong sáng, ngắn gọn, dễ hiểu, sử dụng biểu tượng cảm xúc (emoji) tích cực và dịu dàng.`;
+
+      let promptContent = "";
+      if (message) {
+        promptContent = history && Array.isArray(history) && history.length > 0
+          ? `Lịch sử cuộc trò chuyện:\n${history.map((h: any) => `${h.role === "user" ? (userName || "Học sinh") : "AI Đồng Hành"}: ${h.content}`).join("\n")}\n\nLời chia sẻ mới nhất của học sinh: "${message}"`
+          : `Học sinh chia sẻ: "${message}"`;
+      } else if (mood) {
+        promptContent = `Học sinh vừa check-in tâm trạng hôm nay là "${mood}". Hãy gửi lời chào ấm áp, thấu hiểu và gợi ý cho học sinh 1 bài tập thư giãn hoặc câu hỏi gợi mở để học sinh cảm thấy được đồng hành.`;
+      } else {
+        promptContent = `Gửi lời chào ấm áp và hỏi thăm nhẹ nhàng tình hình học tập, cảm xúc của học sinh hôm nay.`;
+      }
+
+      const response = await client.models.generateContent({
+        model: "gemini-3.7-flash",
+        contents: promptContent,
+        config: {
+          systemInstruction,
+          temperature: 0.7,
+        },
+      });
+
+      res.json({ reply: response.text || "Mình luôn ở đây để lắng nghe bạn. Bạn có muốn chia sẻ thêm không?" });
+    } catch (error: any) {
+      console.error("Mental Health AI Error:", error);
+      res.status(500).json({ error: "Lỗi kết nối Trợ lý AI Đồng Hành", details: error?.message });
+    }
+  });
+
+  // Hộp thư Cố vấn học đường (Messages)
+  app.get("/api/counseling/messages", (req, res) => {
+    try {
+      const { userEmail, role } = req.query;
+      const store = loadStore();
+      const allMessages = store.counselingMessages || [];
+
+      // If counselor or admin, return all messages
+      if (role === "super_admin" || role === "teacher") {
+        return res.json({ success: true, messages: allMessages });
+      }
+
+      // If student, return only their own messages (private)
+      if (userEmail) {
+        const filtered = allMessages.filter(
+          (m: any) => m.senderEmail?.toLowerCase() === String(userEmail).toLowerCase()
+        );
+        return res.json({ success: true, messages: filtered });
+      }
+
+      res.json({ success: true, messages: [] });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi tải hộp thư tư vấn", details: err?.message });
+    }
+  });
+
+  app.post("/api/counseling/messages", (req, res) => {
+    try {
+      const message = req.body;
+      if (!message || !message.title || !message.content) {
+        return res.status(400).json({ error: "Vui lòng điền đầy đủ tiêu đề và nội dung cần chia sẻ" });
+      }
+
+      const store = loadStore();
+      const newMessage = {
+        ...message,
+        id: message.id || `cmsg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        status: message.status || "sent",
+        createdAt: message.createdAt || new Date().toISOString(),
+      };
+
+      const updated = [newMessage, ...(store.counselingMessages || [])];
+      saveStore({ counselingMessages: updated });
+
+      res.json({
+        success: true,
+        message: "Tâm sự của bạn đã được gửi an toàn đến Thầy Bùi Kim Kỳ và Ban Cố Vấn",
+        counselingMessage: newMessage,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi gửi thông điệp tư vấn", details: err?.message });
+    }
+  });
+
+  app.put("/api/counseling/messages/:id/reply", (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reply, repliedBy } = req.body;
+      if (!reply) {
+        return res.status(400).json({ error: "Thiếu nội dung phản hồi tư vấn" });
+      }
+
+      const store = loadStore();
+      const list = store.counselingMessages || [];
+      const idx = list.findIndex((m: any) => m.id === id);
+      if (idx === -1) {
+        return res.status(404).json({ error: "Không tìm thấy thông điệp tư vấn" });
+      }
+
+      const updatedMsg = {
+        ...list[idx],
+        reply,
+        repliedBy: repliedBy || "Thầy Bùi Kim Kỳ - Cố vấn Tâm lý học đường",
+        repliedAt: new Date().toISOString(),
+        status: "replied",
+      };
+
+      list[idx] = updatedMsg;
+      saveStore({ counselingMessages: list });
+
+      res.json({ success: true, message: "Đã phản hồi thư tư vấn", counselingMessage: updatedMsg });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi phản hồi thư tư vấn", details: err?.message });
+    }
+  });
+
+  app.delete("/api/counseling/messages/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const store = loadStore();
+      const list = store.counselingMessages || [];
+      const updated = list.filter((m: any) => m.id !== id);
+      saveStore({ counselingMessages: updated });
+      res.json({ success: true, message: "Đã xóa thư tư vấn" });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi xóa thư tư vấn", details: err?.message });
+    }
+  });
+
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

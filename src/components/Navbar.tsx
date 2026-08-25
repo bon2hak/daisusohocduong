@@ -25,6 +25,7 @@ import {
   LogIn,
   Mail,
   UserCheck,
+  HeartHandshake,
 } from "lucide-react";
 import { useApp, NavTab } from "../context/AppContext";
 import { UserRole } from "../types";
@@ -62,6 +63,7 @@ export const Navbar: React.FC = () => {
     { tab: "skills", label: "Kỹ năng số", icon: ShieldCheck },
     { tab: "student-corner", label: "Góc học sinh", icon: GraduationCap },
     { tab: "ai-corner", label: "Góc AI", icon: Sparkles },
+    { tab: "counseling", label: "Tâm lý & Cố vấn", icon: HeartHandshake },
     { tab: "videos", label: "Video", icon: Video },
     { tab: "documents", label: "Kho tài liệu", icon: FileText },
     { tab: "leaderboard", label: "Thành tích", icon: Trophy },
