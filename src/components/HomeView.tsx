@@ -841,6 +841,11 @@ export const HomeView: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* 🌟 8. BAN CHỦ NHIỆM & HỘI ĐỒNG CỐ VẤN CHUYÊN MÔN CLB */}
+      <div className="pt-6 border-t border-slate-200/80">
+        <AdvisorySection />
+      </div>
     </div>
   );
 };

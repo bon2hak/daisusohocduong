@@ -128,6 +128,7 @@ export type NavTab =
   | "student-corner"
   | "ai-corner"
   | "counseling"
+  | "advisors"
   | "videos"
   | "documents"
   | "leaderboard"

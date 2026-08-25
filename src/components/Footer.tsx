@@ -92,6 +92,14 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <button
+                  onClick={() => setActiveTab("advisors")}
+                  className="hover:text-sky-400 transition-colors flex items-center gap-1.5 font-medium text-sky-300"
+                >
+                  <span>›</span> Ban Cố Vấn & Ban Quản Trị CLB
+                </button>
+              </li>
+              <li>
+                <button
                   onClick={() => setActiveTab("leaderboard")}
                   className="hover:text-sky-400 transition-colors flex items-center gap-1.5"
                 >
