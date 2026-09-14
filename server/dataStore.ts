@@ -77,9 +77,9 @@ export function loadStore(): AppServerStore {
         memoryStore = {
           posts: Array.isArray(parsed.posts) && parsed.posts.length > 0 ? parsed.posts : initial.posts,
           digitalSkills: Array.isArray(parsed.digitalSkills) && parsed.digitalSkills.length > 0 ? parsed.digitalSkills : initial.digitalSkills,
-          studentWorks: Array.isArray(parsed.studentWorks) && parsed.studentWorks.length > 0 ? parsed.studentWorks : initial.studentWorks,
-          videos: Array.isArray(parsed.videos) && parsed.videos.length > 0 ? parsed.videos : initial.videos,
-          documents: Array.isArray(parsed.documents) && parsed.documents.length > 0 ? parsed.documents : initial.documents,
+          studentWorks: Array.isArray(parsed.studentWorks) ? parsed.studentWorks : initial.studentWorks,
+          videos: Array.isArray(parsed.videos) ? parsed.videos : initial.videos,
+          documents: Array.isArray(parsed.documents) ? parsed.documents : initial.documents,
           aiPrompts: Array.isArray(parsed.aiPrompts) && parsed.aiPrompts.length > 0 ? parsed.aiPrompts : initial.aiPrompts,
           aiTools: Array.isArray(parsed.aiTools) && parsed.aiTools.length > 0 ? parsed.aiTools : initial.aiTools,
           emailPermissions: Array.isArray(parsed.emailPermissions) && parsed.emailPermissions.length > 0 ? parsed.emailPermissions : initial.emailPermissions,

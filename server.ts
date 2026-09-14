@@ -56,17 +56,17 @@ async function startServer() {
       const current = loadStore();
 
       const mergedData = {
-        posts: Array.isArray(incoming.posts) && incoming.posts.length > 0 ? incoming.posts : current.posts,
-        digitalSkills: Array.isArray(incoming.digitalSkills) && incoming.digitalSkills.length > 0 ? incoming.digitalSkills : current.digitalSkills,
-        studentWorks: Array.isArray(incoming.studentWorks) && incoming.studentWorks.length > 0 ? incoming.studentWorks : current.studentWorks,
-        videos: Array.isArray(incoming.videos) && incoming.videos.length > 0 ? incoming.videos : current.videos,
-        documents: Array.isArray(incoming.documents) && incoming.documents.length > 0 ? incoming.documents : current.documents,
-        aiPrompts: Array.isArray(incoming.aiPrompts) && incoming.aiPrompts.length > 0 ? incoming.aiPrompts : current.aiPrompts,
-        aiTools: Array.isArray(incoming.aiTools) && incoming.aiTools.length > 0 ? incoming.aiTools : current.aiTools,
-        emailPermissions: Array.isArray(incoming.emailPermissions) && incoming.emailPermissions.length > 0 ? incoming.emailPermissions : current.emailPermissions,
-        leaderboard: Array.isArray(incoming.leaderboard) && incoming.leaderboard.length > 0 ? incoming.leaderboard : current.leaderboard,
-        events: Array.isArray(incoming.events) && incoming.events.length > 0 ? incoming.events : current.events,
-        advisors: Array.isArray(incoming.advisors) && incoming.advisors.length > 0 ? incoming.advisors : current.advisors,
+        posts: Array.isArray(incoming.posts) ? incoming.posts : current.posts,
+        digitalSkills: Array.isArray(incoming.digitalSkills) ? incoming.digitalSkills : current.digitalSkills,
+        studentWorks: Array.isArray(incoming.studentWorks) ? incoming.studentWorks : current.studentWorks,
+        videos: Array.isArray(incoming.videos) ? incoming.videos : current.videos,
+        documents: Array.isArray(incoming.documents) ? incoming.documents : current.documents,
+        aiPrompts: Array.isArray(incoming.aiPrompts) ? incoming.aiPrompts : current.aiPrompts,
+        aiTools: Array.isArray(incoming.aiTools) ? incoming.aiTools : current.aiTools,
+        emailPermissions: Array.isArray(incoming.emailPermissions) ? incoming.emailPermissions : current.emailPermissions,
+        leaderboard: Array.isArray(incoming.leaderboard) ? incoming.leaderboard : current.leaderboard,
+        events: Array.isArray(incoming.events) ? incoming.events : current.events,
+        advisors: Array.isArray(incoming.advisors) ? incoming.advisors : current.advisors,
         userProfiles: incoming.userProfiles && typeof incoming.userProfiles === "object" ? { ...current.userProfiles, ...incoming.userProfiles } : current.userProfiles,
       };
 
@@ -234,6 +234,134 @@ async function startServer() {
       res.json({ success: true, message: "Đã xóa sản phẩm" });
     } catch (err: any) {
       res.status(500).json({ error: "Lỗi xóa sản phẩm", details: err?.message });
+    }
+  });
+
+  // VIDEOS CRUD
+  app.get("/api/videos", (_req, res) => {
+    try {
+      const store = loadStore();
+      res.json({ success: true, videos: store.videos || [] });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi tải video", details: err?.message });
+    }
+  });
+
+  app.post("/api/videos", (req, res) => {
+    try {
+      const video = req.body;
+      if (!video || !video.id || !video.title) {
+        return res.status(400).json({ error: "Dữ liệu video không hợp lệ" });
+      }
+      const store = loadStore();
+      const existingIdx = store.videos.findIndex((v) => v.id === video.id);
+      let updatedVideos = [...store.videos];
+      if (existingIdx >= 0) {
+        updatedVideos[existingIdx] = video;
+      } else {
+        updatedVideos.unshift(video);
+      }
+      saveStore({ videos: updatedVideos });
+      res.json({ success: true, video });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi lưu video bài giảng", details: err?.message });
+    }
+  });
+
+  app.put("/api/videos/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      const store = loadStore();
+      const idx = store.videos.findIndex((v) => v.id === id);
+      if (idx === -1) {
+        const newVideo = { ...updateData, id };
+        saveStore({ videos: [newVideo, ...store.videos] });
+        return res.json({ success: true, video: newVideo });
+      }
+      const updatedVideo = { ...store.videos[idx], ...updateData };
+      const updatedVideos = [...store.videos];
+      updatedVideos[idx] = updatedVideo;
+      saveStore({ videos: updatedVideos });
+      res.json({ success: true, video: updatedVideo });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi cập nhật video", details: err?.message });
+    }
+  });
+
+  app.delete("/api/videos/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const store = loadStore();
+      const updatedVideos = store.videos.filter((v) => v.id !== id);
+      saveStore({ videos: updatedVideos });
+      res.json({ success: true, message: "Đã xóa video thành công khỏi máy chủ" });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi xóa video", details: err?.message });
+    }
+  });
+
+  // DOCUMENTS CRUD
+  app.get("/api/documents", (_req, res) => {
+    try {
+      const store = loadStore();
+      res.json({ success: true, documents: store.documents || [] });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi tải tài liệu", details: err?.message });
+    }
+  });
+
+  app.post("/api/documents", (req, res) => {
+    try {
+      const document = req.body;
+      if (!document || !document.id || !document.title) {
+        return res.status(400).json({ error: "Dữ liệu tài liệu không hợp lệ" });
+      }
+      const store = loadStore();
+      const existingIdx = store.documents.findIndex((d) => d.id === document.id);
+      let updatedDocuments = [...store.documents];
+      if (existingIdx >= 0) {
+        updatedDocuments[existingIdx] = document;
+      } else {
+        updatedDocuments.unshift(document);
+      }
+      saveStore({ documents: updatedDocuments });
+      res.json({ success: true, document });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi lưu tài liệu", details: err?.message });
+    }
+  });
+
+  app.put("/api/documents/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      const store = loadStore();
+      const idx = store.documents.findIndex((d) => d.id === id);
+      if (idx === -1) {
+        const newDoc = { ...updateData, id };
+        saveStore({ documents: [newDoc, ...store.documents] });
+        return res.json({ success: true, document: newDoc });
+      }
+      const updatedDoc = { ...store.documents[idx], ...updateData };
+      const updatedDocs = [...store.documents];
+      updatedDocs[idx] = updatedDoc;
+      saveStore({ documents: updatedDocs });
+      res.json({ success: true, document: updatedDoc });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi cập nhật tài liệu", details: err?.message });
+    }
+  });
+
+  app.delete("/api/documents/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const store = loadStore();
+      const updatedDocs = store.documents.filter((d) => d.id !== id);
+      saveStore({ documents: updatedDocs });
+      res.json({ success: true, message: "Đã xóa tài liệu thành công" });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi xóa tài liệu", details: err?.message });
     }
   });
 

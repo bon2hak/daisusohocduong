@@ -9,6 +9,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { parseYouTubeVideo } from "../lib/youtube";
 import {
   UserProfile,
   UserRole,
@@ -485,6 +486,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let unsubscribePerms: (() => void) | null = null;
     let unsubscribeAdvisors: (() => void) | null = null;
     let unsubscribeProfiles: (() => void) | null = null;
+    let unsubscribeVideos: (() => void) | null = null;
+    let unsubscribeDocs: (() => void) | null = null;
 
     try {
       // Real-time Posts
@@ -507,6 +510,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
         (error) => {
           console.warn("Firestore posts listener notice (fallback to server):", error);
+        }
+      );
+
+      // Real-time Videos
+      const videosCol = collection(db, "videos");
+      unsubscribeVideos = onSnapshot(
+        videosCol,
+        (snapshot) => {
+          if (!snapshot.empty && isMounted) {
+            const remoteVideos: VideoItem[] = [];
+            snapshot.forEach((docSnap) => {
+              const v = docSnap.data() as VideoItem;
+              if (v && v.id) remoteVideos.push(v);
+            });
+            if (remoteVideos.length > 0) {
+              setVideos(remoteVideos);
+              try {
+                localStorage.setItem("daisu_videos", JSON.stringify(remoteVideos));
+              } catch {}
+            }
+          }
+        },
+        (error) => {
+          console.warn("Firestore videos listener notice:", error);
+        }
+      );
+
+      // Real-time Documents
+      const docsCol = collection(db, "documents");
+      unsubscribeDocs = onSnapshot(
+        docsCol,
+        (snapshot) => {
+          if (!snapshot.empty && isMounted) {
+            const remoteDocs: DocumentItem[] = [];
+            snapshot.forEach((docSnap) => {
+              const d = docSnap.data() as DocumentItem;
+              if (d && d.id) remoteDocs.push(d);
+            });
+            if (remoteDocs.length > 0) {
+              setDocuments(remoteDocs);
+              try {
+                localStorage.setItem("daisu_docs", JSON.stringify(remoteDocs));
+              } catch {}
+            }
+          }
+        },
+        (error) => {
+          console.warn("Firestore docs listener notice:", error);
         }
       );
 
@@ -628,11 +679,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               setDigitalSkills(d.digitalSkills);
               localStorage.setItem("daisu_skills", JSON.stringify(d.digitalSkills));
             }
-            if (Array.isArray(d.videos) && d.videos.length > 0) {
+            if (Array.isArray(d.videos)) {
               setVideos(d.videos);
               localStorage.setItem("daisu_videos", JSON.stringify(d.videos));
             }
-            if (Array.isArray(d.documents) && d.documents.length > 0) {
+            if (Array.isArray(d.documents)) {
               setDocuments(d.documents);
               localStorage.setItem("daisu_docs", JSON.stringify(d.documents));
             }
@@ -706,6 +757,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (unsubscribePerms) unsubscribePerms();
       if (unsubscribeAdvisors) unsubscribeAdvisors();
       if (unsubscribeProfiles) unsubscribeProfiles();
+      if (unsubscribeVideos) unsubscribeVideos();
+      if (unsubscribeDocs) unsubscribeDocs();
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleFocus);
       clearInterval(interval);
@@ -2123,62 +2176,223 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // 4. VIDEO (VIDEO HUB)
   const updateVideo = (videoId: string, videoData: Partial<VideoItem>) => {
-    setVideos((prev) =>
-      prev.map((v) => (v.id === videoId ? { ...v, ...videoData } : v))
-    );
-    showToast("Đã cập nhật thông tin Video bài giảng!", "success");
+    let updatedVideoObj: VideoItem | null = null;
+    let finalEmbedUrl = videoData.videoEmbedUrl;
+    let finalThumbnail = videoData.thumbnail;
+
+    if (videoData.videoEmbedUrl) {
+      const parsed = parseYouTubeVideo(videoData.videoEmbedUrl);
+      if (parsed.embedUrl) {
+        finalEmbedUrl = parsed.embedUrl;
+        if (!finalThumbnail && parsed.thumbnailUrl) {
+          finalThumbnail = parsed.thumbnailUrl;
+        }
+      }
+    }
+
+    setVideos((prev) => {
+      const updatedList = prev.map((v) => {
+        if (v.id === videoId) {
+          const updated = {
+            ...v,
+            ...videoData,
+            ...(finalEmbedUrl ? { videoEmbedUrl: finalEmbedUrl } : {}),
+            ...(finalThumbnail ? { thumbnail: finalThumbnail } : {}),
+          };
+          updatedVideoObj = updated;
+          if (selectedVideoForPlay?.id === videoId) {
+            setSelectedVideoForPlay(updated);
+          }
+          return updated;
+        }
+        return v;
+      });
+      try {
+        localStorage.setItem("daisu_videos", JSON.stringify(updatedList));
+      } catch {}
+      return updatedList;
+    });
+
+    const finalVideo = updatedVideoObj || { ...videoData, id: videoId };
+
+    // 1. Sync to Firebase Firestore
+    try {
+      if (updatedVideoObj) {
+        setDoc(doc(db, "videos", videoId), updatedVideoObj, { merge: true }).catch(() => {});
+      }
+    } catch {}
+
+    // 2. Sync to Backend Server API
+    fetch(`/api/videos/${videoId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(finalVideo),
+    }).catch((err) => console.warn("Lỗi lưu video lên máy chủ:", err));
+
+    showToast("Đã cập nhật thông tin Video trên toàn hệ thống!", "success");
   };
 
   const deleteVideo = (videoId: string) => {
     const target = videos.find((v) => v.id === videoId);
-    setVideos((prev) => prev.filter((v) => v.id !== videoId));
-    showToast(`Đã xoá video "${target?.title || videoId}" khỏi Kho đa phương tiện!`, "info");
+    setVideos((prev) => {
+      const updated = prev.filter((v) => v.id !== videoId);
+      try {
+        localStorage.setItem("daisu_videos", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    if (selectedVideoForPlay?.id === videoId) {
+      setSelectedVideoForPlay(null);
+    }
+
+    // 1. Delete from Firebase Firestore
+    try {
+      deleteDoc(doc(db, "videos", videoId)).catch(() => {});
+    } catch {}
+
+    // 2. Delete from Backend Server API
+    fetch(`/api/videos/${videoId}`, { method: "DELETE" }).catch((err) =>
+      console.warn("Lỗi xoá video trên máy chủ:", err)
+    );
+
+    showToast(`Đã xoá video "${target?.title || videoId}" khỏi hệ thống!`, "info");
   };
 
   const addVideo = (videoData: Partial<VideoItem>) => {
+    const rawUrl = videoData.videoEmbedUrl || "";
+    const parsed = parseYouTubeVideo(rawUrl);
+
+    const embedUrl = parsed.embedUrl || rawUrl || "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ";
+    const thumbnail =
+      videoData.thumbnail ||
+      parsed.thumbnailUrl ||
+      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=80";
+
     const newVideo: VideoItem = {
-      id: "vid_" + Date.now(),
+      id: videoData.id || "vid_" + Date.now(),
       title: videoData.title || "Video hướng dẫn mới",
       category: videoData.category || "tutorial",
       categoryName: videoData.categoryName || "Video hướng dẫn",
-      thumbnail:
-        videoData.thumbnail ||
-        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=80",
-      videoEmbedUrl: videoData.videoEmbedUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ",
+      thumbnail,
+      videoEmbedUrl: embedUrl,
       duration: videoData.duration || "05:00",
       author: videoData.author || currentUser.name,
       views: 1,
       description: videoData.description || "Video chia sẻ kiến thức số học đường.",
-      tags: videoData.tags || ["Đại sứ số", "Video"],
+      tags: videoData.tags && videoData.tags.length > 0 ? videoData.tags : ["Đại sứ số", "Video"],
     };
-    setVideos((prev) => [newVideo, ...prev]);
-    showToast("Đã thêm video mới vào Kho đa phương tiện!", "success");
+
+    setVideos((prev) => {
+      const updated = [newVideo, ...prev.filter((v) => v.id !== newVideo.id)];
+      try {
+        localStorage.setItem("daisu_videos", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // 1. Sync to Firebase Firestore
+    try {
+      setDoc(doc(db, "videos", newVideo.id), newVideo).catch(() => {});
+    } catch {}
+
+    // 2. Sync to Backend Server API
+    fetch("/api/videos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newVideo),
+    }).catch((err) => console.warn("Lỗi lưu video mới lên máy chủ:", err));
+
+    showToast("Đã đăng video mới thành công và lưu trên toàn hệ thống!", "success");
   };
 
   // 5. KHO TÀI LIỆU (DOCUMENTS)
   const downloadDocument = (docId: string) => {
-    setDocuments((prev) =>
-      prev.map((d) => (d.id === docId ? { ...d, downloads: d.downloads + 1 } : d))
-    );
+    let updatedDocObj: DocumentItem | null = null;
+    setDocuments((prev) => {
+      const updated = prev.map((d) => {
+        if (d.id === docId) {
+          const u = { ...d, downloads: d.downloads + 1 };
+          updatedDocObj = u;
+          return u;
+        }
+        return d;
+      });
+      try {
+        localStorage.setItem("daisu_docs", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    if (updatedDocObj) {
+      try {
+        setDoc(doc(db, "documents", docId), updatedDocObj, { merge: true }).catch(() => {});
+      } catch {}
+      fetch(`/api/documents/${docId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedDocObj),
+      }).catch(() => {});
+    }
+
     showToast("Đang tải tài liệu học liệu số...", "success");
   };
 
   const updateDocument = (docId: string, docData: Partial<DocumentItem>) => {
-    setDocuments((prev) =>
-      prev.map((d) => (d.id === docId ? { ...d, ...docData } : d))
-    );
+    let updatedDocObj: DocumentItem | null = null;
+    setDocuments((prev) => {
+      const updated = prev.map((d) => {
+        if (d.id === docId) {
+          const u = { ...d, ...docData };
+          updatedDocObj = u;
+          return u;
+        }
+        return d;
+      });
+      try {
+        localStorage.setItem("daisu_docs", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    const finalDoc = updatedDocObj || { ...docData, id: docId };
+    try {
+      if (updatedDocObj) {
+        setDoc(doc(db, "documents", docId), updatedDocObj, { merge: true }).catch(() => {});
+      }
+    } catch {}
+
+    fetch(`/api/documents/${docId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(finalDoc),
+    }).catch(() => {});
+
     showToast("Đã cập nhật thông tin tài liệu!", "success");
   };
 
   const deleteDocument = (docId: string) => {
     const target = documents.find((d) => d.id === docId);
-    setDocuments((prev) => prev.filter((d) => d.id !== docId));
+    setDocuments((prev) => {
+      const updated = prev.filter((d) => d.id !== docId);
+      try {
+        localStorage.setItem("daisu_docs", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    try {
+      deleteDoc(doc(db, "documents", docId)).catch(() => {});
+    } catch {}
+
+    fetch(`/api/documents/${docId}`, { method: "DELETE" }).catch(() => {});
+
     showToast(`Đã xoá tài liệu "${target?.title || docId}" khỏi Kho học liệu!`, "info");
   };
 
   const addDocument = (docData: Partial<DocumentItem>) => {
     const newDoc: DocumentItem = {
-      id: "doc_" + Date.now(),
+      id: docData.id || "doc_" + Date.now(),
       title: docData.title || "Tài liệu học liệu số mới",
       category: docData.category || "training",
       categoryName: docData.categoryName || "Tài liệu tập huấn",
@@ -2189,7 +2403,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: docData.description || "Tài liệu chuyên đề kỹ năng số học đường.",
       author: docData.author || currentUser.name,
     };
-    setDocuments((prev) => [newDoc, ...prev]);
+
+    setDocuments((prev) => {
+      const updated = [newDoc, ...prev];
+      try {
+        localStorage.setItem("daisu_docs", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    try {
+      setDoc(doc(db, "documents", newDoc.id), newDoc).catch(() => {});
+    } catch {}
+
+    fetch("/api/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newDoc),
+    }).catch(() => {});
+
     showToast("Đã thêm tài liệu mới vào Kho học liệu!", "success");
   };
 
