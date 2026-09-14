@@ -26,7 +26,7 @@ import {
   Wind,
   PhoneCall,
 } from "lucide-react";
-import { useApp } from "../context/AppContext";
+import { useApp, getPostSortTime } from "../context/AppContext";
 import { AdvisorySection } from "./AdvisorySection";
 
 export const HomeView: React.FC = () => {
@@ -59,7 +59,12 @@ export const HomeView: React.FC = () => {
 
   const isSuperAdmin = currentRole === "super_admin" || currentRole === "teacher";
 
-  const publishedPosts = posts.filter((p) => p.status === "published");
+  // Published posts sorted chronologically descending (newest first)
+  const publishedPosts = [...posts]
+    .filter((p) => p.status === "published")
+    .sort((a, b) => getPostSortTime(b) - getPostSortTime(a));
+
+  // The featured spotlight post: newest post marked featured, or fallback to the newest published post
   const featuredPost = publishedPosts.find((p) => p.isFeatured) || publishedPosts[0];
   const recentPosts = publishedPosts.filter((p) => p.id !== featuredPost?.id).slice(0, 3);
   const contestWorks = studentWorks.slice(0, 3);
@@ -92,7 +97,7 @@ export const HomeView: React.FC = () => {
           </p>
 
           {/* Quick Action Grid */}
-          <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <button
               onClick={() => setActiveTab("skills")}
               className="flex flex-col items-center justify-center p-3.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-2xl backdrop-blur-md transition-all text-center group hover:scale-[1.02]"
@@ -116,6 +121,17 @@ export const HomeView: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab("advisors")}
+              className="flex flex-col items-center justify-center p-3.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-2xl backdrop-blur-md transition-all text-center group hover:scale-[1.02]"
+            >
+              <div className="w-10 h-10 rounded-xl bg-pink-500/30 flex items-center justify-center text-pink-300 mb-2 group-hover:scale-110 transition-transform">
+                <Award className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-bold text-white">Ban Cố Vấn</span>
+              <span className="text-[10px] text-slate-300 mt-0.5">10 Thầy Cô Hội Đồng</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab("student-corner")}
               className="flex flex-col items-center justify-center p-3.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-2xl backdrop-blur-md transition-all text-center group hover:scale-[1.02]"
             >
@@ -128,7 +144,7 @@ export const HomeView: React.FC = () => {
 
             <button
               onClick={() => setActiveTab("documents")}
-              className="flex flex-col items-center justify-center p-3.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-2xl backdrop-blur-md transition-all text-center group hover:scale-[1.02]"
+              className="flex flex-col items-center justify-center p-3.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-2xl backdrop-blur-md transition-all text-center group hover:scale-[1.02] col-span-2 sm:col-span-1"
             >
               <div className="w-10 h-10 rounded-xl bg-emerald-500/30 flex items-center justify-center text-emerald-300 mb-2 group-hover:scale-110 transition-transform">
                 <FileText className="w-5 h-5" />
@@ -355,7 +371,15 @@ export const HomeView: React.FC = () => {
 
                 <div className="p-5">
                   <div className="flex items-center gap-3 text-xs text-slate-500 mb-2">
-                    <span className="font-semibold text-slate-800">{featuredPost.authorName}</span>
+                    <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                      <span>{featuredPost.authorName}</span>
+                      {(featuredPost.authorName.includes("Ban biên tập") ||
+                        featuredPost.authorRole?.includes("Ban Biên Tập")) && (
+                        <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.2 rounded font-bold">
+                          Ban Biên Tập
+                        </span>
+                      )}
+                    </span>
                     <span>•</span>
                     <span>{featuredPost.createdAt}</span>
                     <span>•</span>
@@ -439,7 +463,14 @@ export const HomeView: React.FC = () => {
                     </h4>
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
-                    <span className="truncate max-w-[100px]">{post.authorName}</span>
+                    <span className="truncate max-w-[140px] flex items-center gap-1 font-medium">
+                      <span className="truncate">{post.authorName}</span>
+                      {(post.authorName.includes("Ban biên tập") || post.authorRole?.includes("Ban Biên Tập")) && (
+                        <span className="text-[9px] bg-blue-100 text-blue-700 px-1 py-0.2 rounded font-bold shrink-0">
+                          BBT
+                        </span>
+                      )}
+                    </span>
                     <div className="flex items-center gap-2">
                       {isSuperAdmin && (
                         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>

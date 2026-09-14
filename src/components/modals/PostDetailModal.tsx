@@ -246,6 +246,13 @@ export const PostDetailModal: React.FC = () => {
                           Chủ nhiệm CLB
                         </span>
                       )}
+                      {(activePostDetail.authorName.includes("Ban biên tập") ||
+                        activePostDetail.authorRole.includes("Ban Biên Tập")) && (
+                        <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.2 rounded font-semibold flex items-center gap-1">
+                          <BookOpen className="w-3 h-3 text-blue-600" />
+                          Ban Biên Tập
+                        </span>
+                      )}
                     </div>
                     <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
                       <span>{activePostDetail.authorRole}</span>

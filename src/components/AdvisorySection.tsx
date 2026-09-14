@@ -21,6 +21,8 @@ import {
 import { useApp } from "../context/AppContext";
 import { ClubAdvisor } from "../types";
 
+import { CLUB_ADVISORY_BOARD } from "../data/initialData";
+
 export const AdvisorySection: React.FC = () => {
   const { advisors, updateAdvisor, currentRole, currentUser, showToast } = useApp();
   const [selectedAdvisor, setSelectedAdvisor] = useState<ClubAdvisor | null>(null);
@@ -33,10 +35,14 @@ export const AdvisorySection: React.FC = () => {
     switch (advisorId) {
       case "advisor_01":
         return <Award className="w-5 h-5 text-amber-500" />;
+      case "advisor_09":
+        return <ShieldCheck className="w-5 h-5 text-indigo-500" />;
+      case "advisor_10":
+        return <Sparkles className="w-5 h-5 text-pink-500" />;
       case "advisor_02":
         return <Cpu className="w-5 h-5 text-sky-500" />;
       case "advisor_03":
-        return <ShieldCheck className="w-5 h-5 text-emerald-500" />;
+        return <CheckCircle2 className="w-5 h-5 text-emerald-500" />;
       case "advisor_04":
         return <Brain className="w-5 h-5 text-purple-500" />;
       case "advisor_05":
@@ -52,11 +58,23 @@ export const AdvisorySection: React.FC = () => {
     }
   };
 
-  const listAdvisors = advisors && advisors.length > 0 ? advisors : [];
+  // Merge state advisors with CLUB_ADVISORY_BOARD default to guarantee all members exist
+  const listAdvisors: ClubAdvisor[] = React.useMemo(() => {
+    const map = new Map<string, ClubAdvisor>();
+    CLUB_ADVISORY_BOARD.forEach((adv) => map.set(adv.id, adv));
+    if (Array.isArray(advisors)) {
+      advisors.forEach((adv) => {
+        if (adv && adv.id) {
+          map.set(adv.id, { ...(map.get(adv.id) || {}), ...adv });
+        }
+      });
+    }
+    return Array.from(map.values());
+  }, [advisors]);
 
   const filteredAdvisors = listAdvisors.filter((advisor) => {
     if (filterRole === "all") return true;
-    if (filterRole === "leader") return advisor.roleType === "leader";
+    if (filterRole === "leader") return advisor.roleType === "leader" || advisor.id === "advisor_01" || advisor.id === "advisor_09" || advisor.id === "advisor_10";
     if (filterRole === "tech_ai") return advisor.id === "advisor_02" || advisor.id === "advisor_04";
     if (filterRole === "quality_data") return advisor.id === "advisor_03" || advisor.id === "advisor_05";
     if (filterRole === "comm_culture") return advisor.id === "advisor_06" || advisor.id === "advisor_07";
@@ -145,7 +163,7 @@ export const AdvisorySection: React.FC = () => {
                 : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
             }`}
           >
-            Chủ nhiệm CLB
+            Ban Quản Trị & Chủ Nhiệm
           </button>
           <button
             onClick={() => setFilterRole("tech_ai")}

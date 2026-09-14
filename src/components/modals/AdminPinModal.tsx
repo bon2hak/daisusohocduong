@@ -81,7 +81,7 @@ export const AdminPinModal: React.FC = () => {
             Xác Thực Quyền Quản Trị Viên
           </h2>
           <p className="text-xs text-rose-100 mt-1">
-            Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) và Giáo viên Cố vấn mới có quyền duyệt, xoá bài và phân quyền.
+            Chỉ Ban Quản trị CLB (Thầy Huỳnh Xuân Hoàng) và Giáo viên Cố vấn mới có quyền duyệt, xoá bài và phân quyền.
           </p>
         </div>
 
@@ -110,7 +110,7 @@ export const AdminPinModal: React.FC = () => {
                 }`}
               >
                 <div>
-                  <div className="font-extrabold text-red-950">Chủ nhiệm CLB</div>
+                  <div className="font-extrabold text-red-950">Ban Quản trị CLB</div>
                   <div className="text-[10px] text-slate-500 font-normal">Thầy Huỳnh Xuân Hoàng</div>
                 </div>
                 {targetRole === "super_admin" && (

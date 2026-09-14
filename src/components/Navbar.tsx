@@ -125,7 +125,7 @@ export const Navbar: React.FC = () => {
               {currentRole === "super_admin" ? (
                 <div className="flex items-center gap-1 bg-red-600 text-white px-2.5 py-1 rounded-md text-xs font-black shadow-xs border border-red-400">
                   <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>🔴 Chủ nhiệm: {currentUser.name}</span>
+                  <span>🔴 Ban Quản trị</span>
                 </div>
               ) : currentRole === "teacher" ? (
                 <div className="flex items-center gap-1 bg-amber-600 text-white px-2.5 py-1 rounded-md text-xs font-black shadow-xs border border-amber-400">
@@ -148,7 +148,7 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={() => setIsAdminPinModalOpen(true)}
                   className="flex items-center gap-1 bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold px-2 py-1 rounded-md text-xs transition-all shadow-xs active:scale-95"
-                  title="Xác thực quyền Quản trị viên (Chủ nhiệm CLB) bằng Mã PIN bảo mật"
+                  title="Xác thực quyền Quản trị viên (Ban Quản trị CLB) bằng Mã PIN bảo mật"
                 >
                   <Lock className="w-3 h-3" />
                   <span>Mở Quyền Quản Trị</span>
@@ -209,7 +209,7 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={() => setIsModerationModalOpen(true)}
                   className="relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors"
-                  title={currentRole === "super_admin" ? "Bàn Quản trị & Duyệt/Xoá bài (Chủ nhiệm CLB)" : "Duyệt bài viết học sinh"}
+                  title={currentRole === "super_admin" ? "Ban Quản trị & Duyệt/Xoá bài (Ban Quản trị CLB)" : "Duyệt bài viết học sinh"}
                 >
                   <ShieldCheck className="w-4 h-4 text-red-600" />
                   <span className="hidden sm:inline">

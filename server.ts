@@ -84,6 +84,9 @@ async function startServer() {
       if (!post || !post.id || !post.title) {
         return res.status(400).json({ error: "Dữ liệu bài viết không hợp lệ" });
       }
+      if (!post.timestamp) {
+        post.timestamp = Date.now();
+      }
       const store = loadStore();
       const existingIdx = store.posts.findIndex((p) => p.id === post.id);
       let updatedPosts = [...store.posts];

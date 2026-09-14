@@ -24,7 +24,7 @@ import {
   Edit3,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { useApp } from "../context/AppContext";
+import { useApp, getPostSortTime } from "../context/AppContext";
 import { Post, PostCategory } from "../types";
 
 export const BlogView: React.FC = () => {
@@ -92,7 +92,7 @@ export const BlogView: React.FC = () => {
     }
 
     return true;
-  });
+  }).sort((a, b) => getPostSortTime(b) - getPostSortTime(a));
 
   const handleShare = (post: Post) => {
     navigator.clipboard?.writeText(window.location.href);
@@ -259,8 +259,13 @@ export const BlogView: React.FC = () => {
                       alt={post.authorName}
                       className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200"
                     />
-                    <span className="font-semibold text-slate-800 truncate max-w-[120px]">
-                      {post.authorName}
+                    <span className="font-semibold text-slate-800 truncate max-w-[180px] flex items-center gap-1">
+                      <span>{post.authorName}</span>
+                      {(post.authorName.includes("Ban biên tập") || post.authorRole?.includes("Ban Biên Tập")) && (
+                        <span className="text-[9px] bg-blue-100 text-blue-700 px-1 py-0.2 rounded font-bold shrink-0">
+                          BBT
+                        </span>
+                      )}
                     </span>
                     <span>•</span>
                     <span>{post.createdAt}</span>

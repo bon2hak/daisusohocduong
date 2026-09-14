@@ -85,6 +85,7 @@ export interface Post {
   authorRole: string;
   authorAvatar: string;
   createdAt: string;
+  timestamp?: number;
   views: number;
   likes: number;
   isLikedByUser?: boolean;

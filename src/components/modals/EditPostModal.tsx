@@ -10,6 +10,8 @@ import {
   AlertCircle,
   Tag,
   Image as ImageIcon,
+  Newspaper,
+  UserCheck,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { PostCategory } from "../../types";
@@ -21,6 +23,7 @@ export const EditPostModal: React.FC = () => {
     updatePost,
     deletePost,
     currentRole,
+    currentUser,
     showToast,
   } = useApp();
 
@@ -32,6 +35,7 @@ export const EditPostModal: React.FC = () => {
   const [thumbnail, setThumbnail] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
   const [status, setStatus] = useState<"published" | "pending_review" | "rejected">("published");
+  const [authorIdentity, setAuthorIdentity] = useState<"editorial" | "original">("original");
   const [isAiPolishing, setIsAiPolishing] = useState(false);
 
   useEffect(() => {
@@ -44,6 +48,14 @@ export const EditPostModal: React.FC = () => {
       setThumbnail(editingPost.thumbnail || "");
       setIsFeatured(!!editingPost.isFeatured);
       setStatus(editingPost.status || "published");
+      if (
+        editingPost.authorName === "Ban biên tập Đại sứ số" ||
+        editingPost.authorRole?.includes("Ban Biên Tập")
+      ) {
+        setAuthorIdentity("editorial");
+      } else {
+        setAuthorIdentity("original");
+      }
     }
   }, [editingPost]);
 
@@ -101,6 +113,8 @@ export const EditPostModal: React.FC = () => {
       .map((t) => t.trim().replace(/^#/, ""))
       .filter(Boolean);
 
+    const isEditorial = authorIdentity === "editorial";
+
     updatePost(editingPost.id, {
       title: title.trim(),
       category,
@@ -111,6 +125,19 @@ export const EditPostModal: React.FC = () => {
       thumbnail: thumbnail.trim() || editingPost.thumbnail,
       isFeatured,
       status,
+      authorName: isEditorial
+        ? "Ban biên tập Đại sứ số"
+        : editingPost.authorName === "Ban biên tập Đại sứ số"
+        ? currentUser.name
+        : editingPost.authorName,
+      authorRole: isEditorial
+        ? "Ban Biên Tập & Tòa Soạn CLB Đại Sứ Số"
+        : editingPost.authorRole?.includes("Ban Biên Tập")
+        ? currentUser.roleTitle
+        : editingPost.authorRole,
+      authorAvatar: isEditorial
+        ? "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=150&auto=format&fit=crop&q=80"
+        : editingPost.authorAvatar,
     });
 
     setEditingPost(null);
@@ -200,6 +227,74 @@ export const EditPostModal: React.FC = () => {
                 <option value="pending_review">🟡 Chờ duyệt (Hàng đợi)</option>
                 <option value="rejected">🔴 Từ chối / Thu hồi</option>
               </select>
+            </div>
+          </div>
+
+          {/* Author Identity Selector */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+              Danh nghĩa tác giả bài viết
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setAuthorIdentity("editorial")}
+                className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  authorIdentity === "editorial"
+                    ? "bg-blue-50/90 border-blue-500 text-blue-900 ring-2 ring-blue-500/20 shadow-xs"
+                    : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                  <Newspaper className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-xs text-blue-950 flex items-center gap-1.5">
+                    <span>Ban biên tập Đại sứ số</span>
+                    <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-semibold">
+                      Chính thức
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    Ban Biên Tập & Tòa Soạn CLB Đại Sứ Số
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAuthorIdentity("original")}
+                className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  authorIdentity === "original"
+                    ? "bg-blue-50/90 border-blue-500 text-blue-900 ring-2 ring-blue-500/20 shadow-xs"
+                    : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <img
+                  src={
+                    editingPost.authorName === "Ban biên tập Đại sứ số"
+                      ? currentUser.avatar
+                      : editingPost.authorAvatar
+                  }
+                  alt={editingPost.authorName}
+                  className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200 shrink-0 mt-0.5"
+                />
+                <div className="min-w-0">
+                  <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                    <span className="truncate">
+                      {editingPost.authorName === "Ban biên tập Đại sứ số"
+                        ? currentUser.name
+                        : editingPost.authorName}
+                    </span>
+                    <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  </div>
+                  <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                    {editingPost.authorName === "Ban biên tập Đại sứ số"
+                      ? currentUser.roleTitle
+                      : editingPost.authorRole}
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
 

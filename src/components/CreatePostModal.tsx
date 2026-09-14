@@ -8,6 +8,9 @@ import {
   AlertCircle,
   ShieldCheck,
   CheckCircle2,
+  Zap,
+  Newspaper,
+  UserCheck,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { PostCategory } from "../types";
@@ -19,6 +22,7 @@ export const CreatePostModal: React.FC = () => {
     createPost,
     currentRole,
     currentUser,
+    setActiveTab,
     showToast,
   } = useApp();
 
@@ -30,7 +34,9 @@ export const CreatePostModal: React.FC = () => {
   const [thumbnail, setThumbnail] = useState(
     "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80"
   );
+  const [isFeatured, setIsFeatured] = useState(true);
   const [isAiPolishing, setIsAiPolishing] = useState(false);
+  const [authorIdentity, setAuthorIdentity] = useState<"editorial" | "personal">("editorial");
 
   if (!isCreatePostModalOpen) return null;
 
@@ -86,6 +92,8 @@ export const CreatePostModal: React.FC = () => {
       .map((t) => t.trim().replace(/^#/, ""))
       .filter(Boolean);
 
+    const isEditorial = authorIdentity === "editorial";
+
     createPost({
       title: title.trim(),
       category,
@@ -94,10 +102,16 @@ export const CreatePostModal: React.FC = () => {
       content: content.trim(),
       tags,
       thumbnail,
-      isFeatured: false,
+      isFeatured,
+      authorName: isEditorial ? "Ban biên tập Đại sứ số" : currentUser.name,
+      authorRole: isEditorial ? "Ban Biên Tập & Tòa Soạn CLB Đại Sứ Số" : currentUser.roleTitle,
+      authorAvatar: isEditorial
+        ? "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=150&auto=format&fit=crop&q=80"
+        : currentUser.avatar,
     });
 
     setIsCreatePostModalOpen(false);
+    setActiveTab("home");
     setTitle("");
     setSummary("");
     setContent("");
@@ -115,7 +129,15 @@ export const CreatePostModal: React.FC = () => {
             <div>
               <h3 className="text-base font-bold text-slate-900">Đăng Bài Viết Học Đường</h3>
               <p className="text-[11px] text-slate-500">
-                Người đăng: <strong>{currentUser.name}</strong> ({currentUser.roleTitle})
+                {authorIdentity === "editorial" ? (
+                  <span>
+                    Danh nghĩa: <strong className="text-blue-700">Ban biên tập Đại sứ số</strong>
+                  </span>
+                ) : (
+                  <span>
+                    Tác giả: <strong>{currentUser.name}</strong> ({currentUser.roleTitle})
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -138,6 +160,64 @@ export const CreatePostModal: React.FC = () => {
                 ? "💡 Bài viết của bạn sẽ được chuyển đến Thầy/Cô cố vấn duyệt trước khi xuất bản rộng rãi (+50 điểm thi đua khi duyệt thành công)."
                 : "✅ Bạn có quyền duyệt hoặc xuất bản trực tiếp bài viết lên Cổng thông tin."}
             </span>
+          </div>
+
+          {/* Author Identity Selector */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+            <label className="block font-bold text-slate-700 mb-2">
+              Danh nghĩa đăng bài (Tác giả hiển thị)
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setAuthorIdentity("editorial")}
+                className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  authorIdentity === "editorial"
+                    ? "bg-blue-50/90 border-blue-500 text-blue-900 ring-2 ring-blue-500/20 shadow-xs"
+                    : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                  <Newspaper className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-xs text-blue-950 flex items-center gap-1.5">
+                    <span>Ban biên tập Đại sứ số</span>
+                    <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-semibold">
+                      Chính thức
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    Ban Biên Tập & Tòa Soạn CLB Đại Sứ Số
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAuthorIdentity("personal")}
+                className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  authorIdentity === "personal"
+                    ? "bg-blue-50/90 border-blue-500 text-blue-900 ring-2 ring-blue-500/20 shadow-xs"
+                    : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200 shrink-0 mt-0.5"
+                />
+                <div className="min-w-0">
+                  <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                    <span className="truncate">{currentUser.name}</span>
+                    <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  </div>
+                  <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                    {currentUser.roleTitle}
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
 
           {/* Title */}
@@ -181,6 +261,21 @@ export const CreatePostModal: React.FC = () => {
                 className="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-hidden font-medium text-slate-800"
               />
             </div>
+          </div>
+
+          {/* Featured Toggle */}
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-50/80 border border-amber-200/90 text-amber-900">
+            <input
+              type="checkbox"
+              id="create-isFeatured"
+              checked={isFeatured}
+              onChange={(e) => setIsFeatured(e.target.checked)}
+              className="w-4 h-4 text-amber-600 rounded-md focus:ring-amber-500 accent-amber-600 cursor-pointer"
+            />
+            <label htmlFor="create-isFeatured" className="text-xs font-bold cursor-pointer flex items-center gap-1.5 select-none">
+              <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+              <span>Tự động ghim lên vị trí "Tin Nổi Bật & Hoạt Động Mới" (Trang chủ)</span>
+            </label>
           </div>
 
           {/* Summary */}

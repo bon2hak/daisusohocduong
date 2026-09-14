@@ -309,6 +309,34 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+export const getPostSortTime = (p: Post): number => {
+  if (typeof p.timestamp === "number" && !isNaN(p.timestamp) && p.timestamp > 0) {
+    return p.timestamp;
+  }
+  if (p.id && p.id.startsWith("post_")) {
+    const num = parseInt(p.id.replace("post_", ""), 10);
+    if (!isNaN(num) && num > 1000000000) return num;
+  }
+  if (p.createdAt) {
+    if (
+      p.createdAt.includes("Hôm nay") ||
+      p.createdAt.includes("Vừa xong") ||
+      p.createdAt.includes("Mới")
+    ) {
+      return Date.now();
+    }
+    const parts = p.createdAt.split(" ")[0].split("/");
+    if (parts.length === 3) {
+      const d = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const y = parseInt(parts[2], 10);
+      const t = new Date(y, m, d).getTime();
+      if (!isNaN(t)) return t;
+    }
+  }
+  return 0;
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem("daisu_current_user");
@@ -412,8 +440,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [advisors, setAdvisors] = useState<ClubAdvisor[]>(() => {
-    const saved = localStorage.getItem("daisu_advisors");
-    return saved ? JSON.parse(saved) : CLUB_ADVISORY_BOARD;
+    try {
+      const saved = localStorage.getItem("daisu_advisors");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const map = new Map<string, ClubAdvisor>();
+          CLUB_ADVISORY_BOARD.forEach((a) => map.set(a.id, a));
+          parsed.forEach((a) => {
+            if (a && a.id) map.set(a.id, { ...(map.get(a.id) || {}), ...a });
+          });
+          return Array.from(map.values());
+        }
+      }
+    } catch {}
+    return CLUB_ADVISORY_BOARD;
   });
 
   // 8. Mental Health & Counseling
@@ -457,6 +498,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               remotePosts.push(docSnap.data() as Post);
             });
             // Sort by published/created timestamp descending if available
+            remotePosts.sort((a, b) => getPostSortTime(b) - getPostSortTime(a));
             setPosts(remotePosts);
             try {
               localStorage.setItem("daisu_posts", JSON.stringify(remotePosts));
@@ -516,13 +558,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         advisorsCol,
         (snapshot) => {
           if (!snapshot.empty && isMounted) {
-            const remoteAdvisors: ClubAdvisor[] = [];
+            const map = new Map<string, ClubAdvisor>();
+            CLUB_ADVISORY_BOARD.forEach((a) => map.set(a.id, a));
             snapshot.forEach((docSnap) => {
-              remoteAdvisors.push(docSnap.data() as ClubAdvisor);
+              const data = docSnap.data() as ClubAdvisor;
+              if (data && data.id) {
+                map.set(data.id, { ...(map.get(data.id) || {}), ...data });
+              }
             });
-            setAdvisors(remoteAdvisors);
+            const mergedAdvisors = Array.from(map.values());
+            setAdvisors(mergedAdvisors);
             try {
-              localStorage.setItem("daisu_advisors", JSON.stringify(remoteAdvisors));
+              localStorage.setItem("daisu_advisors", JSON.stringify(mergedAdvisors));
             } catch {}
           }
         },
@@ -569,11 +616,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (json.success && json.data) {
             const d = json.data;
             if (Array.isArray(d.posts) && d.posts.length > 0) {
-              setPosts((prev) => {
-                // If local state is default and remote has data, update
-                return d.posts;
-              });
-              localStorage.setItem("daisu_posts", JSON.stringify(d.posts));
+              const sorted = [...d.posts].sort((a, b) => getPostSortTime(b) - getPostSortTime(a));
+              setPosts(sorted);
+              localStorage.setItem("daisu_posts", JSON.stringify(sorted));
             }
             if (Array.isArray(d.studentWorks) && d.studentWorks.length > 0) {
               setStudentWorks(d.studentWorks);
@@ -612,8 +657,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               localStorage.setItem("daisu_events", JSON.stringify(d.events));
             }
             if (Array.isArray(d.advisors) && d.advisors.length > 0) {
-              setAdvisors(d.advisors);
-              localStorage.setItem("daisu_advisors", JSON.stringify(d.advisors));
+              const map = new Map<string, ClubAdvisor>();
+              CLUB_ADVISORY_BOARD.forEach((a) => map.set(a.id, a));
+              d.advisors.forEach((a: ClubAdvisor) => {
+                if (a && a.id) {
+                  map.set(a.id, { ...(map.get(a.id) || {}), ...a });
+                }
+              });
+              const merged = Array.from(map.values());
+              setAdvisors(merged);
+              localStorage.setItem("daisu_advisors", JSON.stringify(merged));
             }
             if (Array.isArray(d.counselingMessages)) {
               setCounselingMessages(d.counselingMessages);
@@ -1621,9 +1674,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const createPost = (postData: Partial<Post>) => {
-    const isAutoApprove = currentRole === "super_admin" || currentRole === "teacher" || currentRole === "ambassador";
+    const now = Date.now();
+    const formattedDate = new Date().toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+
+    const finalStatus: "published" | "pending_review" | "rejected" = postData.status || "published";
+    const isFeatured = postData.isFeatured !== undefined ? postData.isFeatured : true;
+
     const newPost: Post = {
-      id: "post_" + Date.now(),
+      id: postData.id || "post_" + now,
       title: postData.title || "Bài viết chưa đặt tên",
       slug: (postData.title || "bai-viet").toLowerCase().replace(/[^a-z0-9]/g, "-"),
       summary: postData.summary || "Tóm tắt bài viết",
@@ -1633,20 +1695,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       thumbnail:
         postData.thumbnail ||
         "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80",
-      authorId: currentUser.id,
-      authorName: currentUser.name,
-      authorRole: currentUser.roleTitle,
-      authorAvatar: currentUser.avatar,
-      createdAt: "Hôm nay",
+      authorId: postData.authorId || currentUser.id,
+      authorName: postData.authorName || currentUser.name,
+      authorRole: postData.authorRole || currentUser.roleTitle,
+      authorAvatar: postData.authorAvatar || currentUser.avatar,
+      createdAt: formattedDate,
+      timestamp: now,
       views: 1,
       likes: 0,
-      status: isAutoApprove ? "published" : "pending_review",
-      tags: postData.tags || ["Đại sứ số", "Học đường"],
+      status: finalStatus,
+      tags: postData.tags && postData.tags.length > 0 ? postData.tags : ["Đại sứ số", "Học đường"],
       comments: [],
-      isFeatured: postData.isFeatured || false,
+      isFeatured: isFeatured,
     };
 
-    setPosts((prev) => [newPost, ...prev]);
+    setPosts((prev) => {
+      const filtered = prev.filter((p) => p.id !== newPost.id);
+      const updated = [newPost, ...filtered];
+      try {
+        localStorage.setItem("daisu_posts", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     // Save to Firestore Real-time
     try {
@@ -1660,12 +1730,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       body: JSON.stringify(newPost),
     }).catch((err) => console.error("Error creating post on server:", err));
 
-    if (isAutoApprove) {
-      addPointsToUser(50, "Xuất bản bài viết chia sẻ tri thức");
-      showToast("Bài viết đã được đăng và lưu trên hệ thống thành công!", "success");
-    } else {
-      showToast("Bài viết đã được gửi vào hàng đợi duyệt của Thầy/Cô!", "info");
-    }
+    addPointsToUser(50, "Xuất bản bài viết chia sẻ tri thức");
+    showToast("Bài viết đã xuất bản và tự động đẩy lên Tin Nổi Bật & Hoạt Động Mới!", "success");
   };
 
   const updatePost = (postId: string, postData: Partial<Post>) => {
@@ -1715,15 +1781,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     let approvedItem: Post | null = null;
+    const now = Date.now();
     setPosts((prev) => {
-      const updated = prev.map((p) => {
+      let target: Post | null = null;
+      const remaining: Post[] = [];
+      for (const p of prev) {
         if (p.id === postId) {
-          const u = { ...p, status: "published" as const };
-          approvedItem = u;
-          return u;
+          target = { ...p, status: "published" as const, isFeatured: true, timestamp: now };
+        } else {
+          remaining.push(p);
         }
-        return p;
-      });
+      }
+      if (!target) return prev;
+      approvedItem = target;
+      const updated = [target, ...remaining];
       try {
         localStorage.setItem("daisu_posts", JSON.stringify(updated));
       } catch {}
@@ -1737,9 +1808,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "published" }),
+      body: JSON.stringify({ status: "published", isFeatured: true, timestamp: now }),
     }).catch(() => {});
-    showToast("Đã duyệt và xuất bản bài viết lên Cổng thông tin!", "success");
+    showToast("Đã duyệt và đẩy bài viết lên Tin Nổi Bật & Hoạt Động Mới!", "success");
   };
 
   const rejectPost = (postId: string, reason: string) => {
