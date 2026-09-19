@@ -100,8 +100,8 @@ export const INITIAL_SAVED_GOOGLE_ACCOUNTS: SavedGoogleAccount[] = [
     classroom: "Lớp 8A",
     clubRole: "Trưởng ban Truyền thông & Sáng tạo",
     clubDuties: "Tuyên truyền kỹ năng số, thiết kế ấn phẩm và chia sẻ kinh nghiệm AI",
-    hasSavedPassword: true,
-    savedPassword: "••••••••",
+    hasSavedPassword: false,
+    savedPassword: "",
     lastLogin: "2 ngày trước",
     isRegistered: true,
   },
@@ -115,8 +115,8 @@ export const INITIAL_SAVED_GOOGLE_ACCOUNTS: SavedGoogleAccount[] = [
     classroom: "Lớp 7B",
     clubRole: "Học sinh Tham gia CLB",
     clubDuties: "Tham gia các buổi sinh hoạt CLB, học tập kỹ năng số và làm bài tập thực hành",
-    hasSavedPassword: true,
-    savedPassword: "••••••••",
+    hasSavedPassword: false,
+    savedPassword: "",
     lastLogin: "3 ngày trước",
     isRegistered: true,
   },
@@ -976,7 +976,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [savedGoogleAccounts, setSavedGoogleAccounts] = useState<SavedGoogleAccount[]>(() => {
     const saved = localStorage.getItem("daisu_saved_google_accounts");
-    return saved ? JSON.parse(saved) : INITIAL_SAVED_GOOGLE_ACCOUNTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map((acc: SavedGoogleAccount) => ({
+            ...acc,
+            hasSavedPassword: false,
+            savedPassword: "",
+          }));
+        }
+      } catch {}
+    }
+    return INITIAL_SAVED_GOOGLE_ACCOUNTS.map((acc) => ({
+      ...acc,
+      hasSavedPassword: false,
+      savedPassword: "",
+    }));
   });
 
   const [registeredProfiles, setRegisteredProfiles] = useState<Record<string, Partial<UserProfile>>>(() => {
@@ -985,9 +1001,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const saveGoogleAccount = (acc: SavedGoogleAccount) => {
+    // Sanitize: Never store password or auto-fill flag
+    const sanitizedAcc: SavedGoogleAccount = {
+      ...acc,
+      hasSavedPassword: false,
+      savedPassword: "",
+    };
     setSavedGoogleAccounts((prev) => {
       const filtered = prev.filter((a) => a.email.toLowerCase() !== acc.email.toLowerCase());
-      const updated = [acc, ...filtered];
+      const updated = [sanitizedAcc, ...filtered];
       localStorage.setItem("daisu_saved_google_accounts", JSON.stringify(updated));
       return updated;
     });
@@ -1181,7 +1203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRegisteredProfiles(updatedProfiles);
     localStorage.setItem("daisu_registered_profiles", JSON.stringify(updatedProfiles));
 
-    // Save to savedGoogleAccounts
+    // Save to savedGoogleAccounts (Remember account identity only, NEVER store password)
     const newSavedAcc: SavedGoogleAccount = {
       email: mergedUser.email || email,
       name: mergedUser.name,
@@ -1192,8 +1214,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       classroom: mergedUser.classroom,
       clubRole: mergedUser.clubRole,
       clubDuties: mergedUser.clubDuties,
-      hasSavedPassword: customData?.savePassword !== false,
-      savedPassword: customData?.savePassword !== false ? (customData?.password || "••••••••") : undefined,
+      hasSavedPassword: false,
+      savedPassword: "",
       lastLogin: "Vừa xong",
       isRegistered: true,
     };

@@ -142,7 +142,10 @@ export const AdminPinModal: React.FC = () => {
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
               <span>Mã PIN Quản trị bảo mật:</span>
-              <span className="text-[11px] text-slate-400 font-normal">Mặc định: 2026</span>
+              <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                <Lock className="w-3 h-3 text-emerald-600" />
+                <span>Mật mã được mã hóa</span>
+              </span>
             </label>
             <div className="relative">
               <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -155,7 +158,7 @@ export const AdminPinModal: React.FC = () => {
                   setPinInput(e.target.value);
                   setErrorMessage("");
                 }}
-                placeholder="Nhập mã PIN bảo mật..."
+                placeholder="Nhập mã PIN bảo mật được cấp..."
                 className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-sm pl-10 pr-4 py-3 rounded-xl border border-slate-300 focus:border-red-500 focus:ring-3 focus:ring-red-100 outline-hidden transition-all text-slate-900 font-mono tracking-widest"
               />
             </div>
