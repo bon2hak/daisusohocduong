@@ -36,7 +36,10 @@ export const CreatePostModal: React.FC = () => {
   );
   const [isFeatured, setIsFeatured] = useState(true);
   const [isAiPolishing, setIsAiPolishing] = useState(false);
-  const [authorIdentity, setAuthorIdentity] = useState<"editorial" | "personal">("editorial");
+  const isPrivileged = currentRole === "super_admin" || currentRole === "teacher" || currentRole === "ambassador";
+  const [authorIdentity, setAuthorIdentity] = useState<"editorial" | "personal">(() =>
+    isPrivileged ? "editorial" : "personal"
+  );
 
   if (!isCreatePostModalOpen) return null;
 
@@ -153,12 +156,18 @@ export const CreatePostModal: React.FC = () => {
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
           {/* Post approval notice */}
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 flex items-start gap-2 text-xs">
-            <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+          <div className={`p-3 rounded-xl border flex items-start gap-2 text-xs ${
+            currentRole === "super_admin" || currentRole === "teacher"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+              : "bg-amber-50 border-amber-200 text-amber-900"
+          }`}>
+            <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${
+              currentRole === "super_admin" || currentRole === "teacher" ? "text-emerald-600" : "text-amber-600"
+            }`} />
             <span>
-              {currentRole === "student"
-                ? "💡 Bài viết của bạn sẽ được chuyển đến Thầy/Cô cố vấn duyệt trước khi xuất bản rộng rãi (+50 điểm thi đua khi duyệt thành công)."
-                : "✅ Bạn có quyền duyệt hoặc xuất bản trực tiếp bài viết lên Cổng thông tin."}
+              {currentRole === "super_admin" || currentRole === "teacher"
+                ? "✅ Với vai trò Ban Quản trị / Giáo viên Cố vấn, bài viết sẽ được xuất bản trực tiếp lên Cổng thông tin."
+                : "⏳ Theo quy định bảo mật, bài viết của học sinh/thành viên sẽ được chuyển đến Ban Quản trị kiểm duyệt trước khi xuất bản (+50 điểm thi đua khi được duyệt thành công)."}
             </span>
           </div>
 

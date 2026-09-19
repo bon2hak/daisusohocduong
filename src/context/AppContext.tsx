@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 import confetti from "canvas-confetti";
 import {
   collection,
@@ -55,8 +55,8 @@ export const INITIAL_SAVED_GOOGLE_ACCOUNTS: SavedGoogleAccount[] = [
     classroom: "Ban Quản Trị CLB Đại Sứ Số",
     clubRole: "Chủ nhiệm Câu lạc bộ",
     clubDuties: "Quản trị tối cao toàn bộ hệ thống, phân quyền email, duyệt & xuất bản bài viết",
-    hasSavedPassword: true,
-    savedPassword: "••••••••",
+    hasSavedPassword: false,
+    savedPassword: "",
     lastLogin: "Vừa xong",
     isRegistered: true,
   },
@@ -70,8 +70,8 @@ export const INITIAL_SAVED_GOOGLE_ACCOUNTS: SavedGoogleAccount[] = [
     classroom: "Chủ nhiệm CLB Đại sứ số",
     clubRole: "Chủ nhiệm Câu lạc bộ",
     clubDuties: "Chỉ đạo toàn diện kế hoạch chuyển đổi số, phê duyệt bài viết và ban hành nội dung số",
-    hasSavedPassword: true,
-    savedPassword: "••••••••",
+    hasSavedPassword: false,
+    savedPassword: "",
     lastLogin: "Hôm nay",
     isRegistered: true,
   },
@@ -85,8 +85,8 @@ export const INITIAL_SAVED_GOOGLE_ACCOUNTS: SavedGoogleAccount[] = [
     classroom: "Tổ Kỹ thuật & Chuyển đổi số",
     clubRole: "Cố vấn Kỹ thuật & Hạ tầng Số",
     clubDuties: "Quản trị kỹ thuật, giải pháp an toàn mạng, duyệt bài và hướng dẫn học sinh ứng dụng AI",
-    hasSavedPassword: true,
-    savedPassword: "••••••••",
+    hasSavedPassword: false,
+    savedPassword: "",
     lastLogin: "Hôm qua",
     isRegistered: true,
   },
@@ -156,6 +156,7 @@ interface AppContextType {
 
   // 1. Posts / Blog
   posts: Post[];
+  pendingPostsCount: number;
   activePostDetail: Post | null;
   setActivePostDetail: (post: Post | null) => void;
   likePost: (postId: string) => void;
@@ -1066,7 +1067,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let assignedClassroom = customData?.classroom || existingProfile?.classroom || "Lớp 8A";
     let assignedAccountType: "student" | "teacher" = customData?.accountType || existingProfile?.accountType || "student";
 
-    if (matchedPerm) {
+    if (matchedPerm && matchedPerm.status === "active") {
       // Recognized from official permission table
       assignedRole = matchedPerm.role;
       assignedRoleTitle = matchedPerm.roleTitle;
@@ -1075,27 +1076,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       assignedClassroom = matchedPerm.classroom || assignedClassroom;
       assignedAccountType = matchedPerm.accountType || "student";
     } else if (existingProfile && existingProfile.role) {
-      assignedRole = existingProfile.role;
-      assignedRoleTitle = existingProfile.roleTitle || (assignedAccountType === "teacher" ? "Giáo viên Cố vấn CLB" : "Học sinh Thành viên CLB");
+      // If the existing profile claims super_admin or teacher, strictly verify against emailPermissions table!
+      if (existingProfile.role === "super_admin" || existingProfile.role === "teacher") {
+        const isOfficiallyPermitted = emailPermissions.some(
+          (p) =>
+            p.email.toLowerCase() === email &&
+            (p.role === "super_admin" || p.role === "teacher") &&
+            p.status === "active"
+        );
+        if (isOfficiallyPermitted) {
+          assignedRole = existingProfile.role;
+          assignedRoleTitle = existingProfile.roleTitle || "Ban Quản trị CLB";
+          assignedAccountType = "teacher";
+        } else {
+          // Demote to student / ambassador
+          assignedRole = "student";
+          assignedRoleTitle = "Học sinh Thành viên CLB";
+          assignedAccountType = "student";
+        }
+      } else {
+        assignedRole = existingProfile.role;
+        assignedRoleTitle = existingProfile.roleTitle || "Học sinh Thành viên CLB";
+        assignedAccountType = existingProfile.accountType || "student";
+      }
       assignedClubRole = existingProfile.clubRole || (assignedAccountType === "teacher" ? "Giáo viên CLB" : "Học sinh CLB");
       assignedClubDuties = existingProfile.clubDuties || assignedClubDuties;
       assignedClassroom = existingProfile.classroom || assignedClassroom;
-      assignedAccountType = existingProfile.accountType || assignedAccountType;
     } else {
-      // Not in special table: give regular student or member teacher role
-      if (customData?.accountType === "teacher" || email.includes("detham.edu.vn")) {
-        assignedRole = "teacher";
-        assignedRoleTitle = "Giáo viên Cố vấn CLB";
-        assignedAccountType = "teacher";
-        assignedClubRole = customData?.clubRole || "Thành viên Hội đồng Cố vấn";
-        assignedClassroom = customData?.classroom || "Tổ Chuyên môn";
-      } else {
-        assignedRole = "student";
-        assignedRoleTitle = "Học sinh Thành viên CLB";
-        assignedAccountType = "student";
-        assignedClubRole = customData?.clubRole || "Học sinh Tham gia CLB";
-        assignedClassroom = customData?.classroom || "Lớp 8A";
-      }
+      // Any new or unlisted email is assigned regular student privileges by default.
+      // Administrative moderation rights are granted ONLY via emailPermissions or Admin PIN.
+      assignedRole = "student";
+      assignedRoleTitle = customData?.accountType === "teacher" ? "Giáo viên Quan sát (Chưa cấp quyền quản trị)" : "Học sinh Thành viên CLB";
+      assignedAccountType = customData?.accountType || "student";
+      assignedClubRole = customData?.clubRole || "Học sinh Tham gia CLB";
+      assignedClassroom = customData?.classroom || "Lớp 8A";
     }
 
     const defaultGoogleUser: UserProfile = {
@@ -1734,8 +1748,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       year: "numeric",
     });
 
-    const finalStatus: "published" | "pending_review" | "rejected" = postData.status || "published";
-    const isFeatured = postData.isFeatured !== undefined ? postData.isFeatured : true;
+    const isAuthorizedAdmin =
+      currentRole === "super_admin" ||
+      currentRole === "teacher" ||
+      emailPermissions.some(
+        (p) =>
+          p.email.toLowerCase() === (currentUser.email || "").toLowerCase() &&
+          (p.role === "super_admin" || p.role === "teacher") &&
+          p.status === "active"
+      );
+
+    // Strict moderation policy: Only authorized admin/teacher can publish directly.
+    // Regular students/members are forced into pending_review.
+    const finalStatus: "published" | "pending_review" | "rejected" = isAuthorizedAdmin
+      ? postData.status || "published"
+      : "pending_review";
+    const isFeatured = isAuthorizedAdmin ? (postData.isFeatured !== undefined ? postData.isFeatured : true) : false;
 
     const newPost: Post = {
       id: postData.id || "post_" + now,
@@ -1776,23 +1804,68 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setDoc(doc(db, "posts", newPost.id), newPost).catch(() => {});
     } catch {}
 
-    // Save to Server
+    // Save to Server with security headers
     fetch("/api/posts", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-role": currentRole,
+        "x-user-email": currentUser.email || "",
+        "x-user-id": currentUser.id || "",
+      },
       body: JSON.stringify(newPost),
     }).catch((err) => console.error("Error creating post on server:", err));
 
-    addPointsToUser(50, "Xuất bản bài viết chia sẻ tri thức");
-    showToast("Bài viết đã xuất bản và tự động đẩy lên Tin Nổi Bật & Hoạt Động Mới!", "success");
+    if (finalStatus === "pending_review") {
+      addPointsToUser(20, "Gửi bài viết chia sẻ tri thức (đang chờ duyệt)");
+      showToast("Bài viết của bạn đã được gửi thành công và đang chờ Ban Quản trị phê duyệt trước khi xuất bản!", "info");
+    } else {
+      addPointsToUser(50, "Xuất bản bài viết chia sẻ tri thức");
+      showToast("Bài viết đã xuất bản và tự động đẩy lên Tin Nổi Bật & Hoạt Động Mới!", "success");
+    }
   };
 
   const updatePost = (postId: string, postData: Partial<Post>) => {
+    const target = posts.find((p) => p.id === postId);
+    if (!target) return;
+
+    const isAuthorizedAdmin =
+      currentRole === "super_admin" ||
+      currentRole === "teacher" ||
+      emailPermissions.some(
+        (p) =>
+          p.email.toLowerCase() === (currentUser.email || "").toLowerCase() &&
+          (p.role === "super_admin" || p.role === "teacher") &&
+          p.status === "active"
+      );
+    const isAuthor =
+      target.authorId === currentUser.id ||
+      (currentUser.email && target.authorId === currentUser.email);
+
+    // If post is already published, ONLY admin or teacher can edit!
+    if (target.status === "published" && !isAuthorizedAdmin) {
+      setIsAdminPinModalOpen(true);
+      showToast("Bài viết đã xuất bản! Chỉ Ban Quản trị và người được giao quyền mới được chỉnh sửa.", "error");
+      return;
+    }
+
+    // If pending, only admin or author can edit
+    if (target.status !== "published" && !isAuthorizedAdmin && !isAuthor) {
+      showToast("Bạn không có quyền chỉnh sửa bài viết này.", "error");
+      return;
+    }
+
+    const safeData = { ...postData };
+    // Unauthorized users cannot elevate status to published
+    if (!isAuthorizedAdmin && safeData.status === "published") {
+      safeData.status = "pending_review";
+    }
+
     let updatedTarget: Post | null = null;
     setPosts((prev) => {
       const nextPosts = prev.map((p) => {
         if (p.id === postId) {
-          const updated = { ...p, ...postData };
+          const updated = { ...p, ...safeData };
           updatedTarget = updated;
           if (activePostDetail && activePostDetail.id === postId) {
             setActivePostDetail(updated);
@@ -1807,7 +1880,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return nextPosts;
     });
 
-    const finalData = updatedTarget || postData;
+    const finalData = updatedTarget || safeData;
 
     // Save to Firestore Real-time
     try {
@@ -1816,10 +1889,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch {}
 
-    // Save to Server
+    // Save to Server with security headers
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-role": currentRole,
+        "x-user-email": currentUser.email || "",
+        "x-user-id": currentUser.id || "",
+      },
       body: JSON.stringify(finalData),
     }).catch((err) => console.error("Error updating post on server:", err));
 
@@ -1827,7 +1905,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const approvePost = (postId: string) => {
-    if (currentRole !== "super_admin" && currentRole !== "teacher") {
+    const isAuthorizedAdmin =
+      currentRole === "super_admin" ||
+      currentRole === "teacher" ||
+      emailPermissions.some(
+        (p) =>
+          p.email.toLowerCase() === (currentUser.email || "").toLowerCase() &&
+          (p.role === "super_admin" || p.role === "teacher") &&
+          p.status === "active"
+      );
+
+    if (!isAuthorizedAdmin) {
       setIsAdminPinModalOpen(true);
       showToast("Chỉ Ban Quản trị / Thầy Cô Cố vấn mới có quyền phê duyệt bài viết!", "error");
       return;
@@ -1860,14 +1948,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-role": currentRole,
+        "x-user-email": currentUser.email || "",
+        "x-user-id": currentUser.id || "",
+      },
       body: JSON.stringify({ status: "published", isFeatured: true, timestamp: now }),
     }).catch(() => {});
-    showToast("Đã duyệt và đẩy bài viết lên Tin Nổi Bật & Hoạt Động Mới!", "success");
+    showToast("Đã duyệt và xuất bản bài viết lên Cổng thông tin!", "success");
   };
 
   const rejectPost = (postId: string, reason: string) => {
-    if (currentRole !== "super_admin" && currentRole !== "teacher") {
+    const isAuthorizedAdmin =
+      currentRole === "super_admin" ||
+      currentRole === "teacher" ||
+      emailPermissions.some(
+        (p) =>
+          p.email.toLowerCase() === (currentUser.email || "").toLowerCase() &&
+          (p.role === "super_admin" || p.role === "teacher") &&
+          p.status === "active"
+      );
+
+    if (!isAuthorizedAdmin) {
       setIsAdminPinModalOpen(true);
       showToast("Chỉ Ban Quản trị / Thầy Cô Cố vấn mới có quyền từ chối bài viết!", "error");
       return;
@@ -1895,7 +1998,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-role": currentRole,
+        "x-user-email": currentUser.email || "",
+        "x-user-id": currentUser.id || "",
+      },
       body: JSON.stringify({ status: "rejected", rejectReason: reason }),
     }).catch(() => {});
     showToast("Đã từ chối bài viết kèm phản hồi hướng dẫn.", "warning");
@@ -1906,12 +2014,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!target) return;
 
     // Security check: Only super_admin/teacher or author of pending post can delete
-    const isSuperAdmin = currentRole === "super_admin" || currentRole === "teacher";
-    const isAuthorOfPending = target.authorId === currentUser.id && target.status === "pending_review";
+    const isAuthorizedAdmin =
+      currentRole === "super_admin" ||
+      currentRole === "teacher" ||
+      emailPermissions.some(
+        (p) =>
+          p.email.toLowerCase() === (currentUser.email || "").toLowerCase() &&
+          (p.role === "super_admin" || p.role === "teacher") &&
+          p.status === "active"
+      );
+    const isAuthorOfPending =
+      (target.authorId === currentUser.id || (currentUser.email && target.authorId === currentUser.email)) &&
+      target.status === "pending_review";
 
-    if (!isSuperAdmin && !isAuthorOfPending) {
+    if (!isAuthorizedAdmin && !isAuthorOfPending) {
       setIsAdminPinModalOpen(true);
-      showToast("Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền xoá bài viết!", "error");
+      showToast("Chỉ Ban Quản trị và người được giao quyền mới có quyền xoá bài viết!", "error");
       return;
     }
 
@@ -1928,14 +2046,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       deleteDoc(doc(db, "posts", postId)).catch(() => {});
     } catch {}
-    fetch(`/api/posts/${postId}`, { method: "DELETE" }).catch(() => {});
+    fetch(`/api/posts/${postId}`, {
+      method: "DELETE",
+      headers: {
+        "x-user-role": currentRole,
+        "x-user-email": currentUser.email || "",
+        "x-user-id": currentUser.id || "",
+      },
+    }).catch(() => {});
     showToast(`Đã xoá bài viết "${target?.title || postId}" khỏi Cổng thông tin số!`, "info");
   };
 
   const unpublishPost = (postId: string) => {
-    if (currentRole !== "super_admin" && currentRole !== "teacher") {
+    const isAuthorizedAdmin =
+      currentRole === "super_admin" ||
+      currentRole === "teacher" ||
+      emailPermissions.some(
+        (p) =>
+          p.email.toLowerCase() === (currentUser.email || "").toLowerCase() &&
+          (p.role === "super_admin" || p.role === "teacher") &&
+          p.status === "active"
+      );
+
+    if (!isAuthorizedAdmin) {
       setIsAdminPinModalOpen(true);
-      showToast("Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền thu hồi duyệt bài viết!", "error");
+      showToast("Chỉ Ban Quản trị mới có quyền thu hồi duyệt bài viết!", "error");
       return;
     }
 
@@ -1964,10 +2099,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
     fetch(`/api/posts/${postId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-role": currentRole,
+        "x-user-email": currentUser.email || "",
+        "x-user-id": currentUser.id || "",
+      },
       body: JSON.stringify({ status: "pending_review" }),
     }).catch(() => {});
-    showToast("Đã thu hồi bài viết về trạng thái Chờ duyệt (gỡ xuất bản)!", "warning");
+    showToast("Đã thu hồi bài viết về danh sách chờ duyệt.", "info");
   };
 
   // 2. GÓC HỌC SINH (STUDENT WORKS)
@@ -2644,6 +2784,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast("Đã xóa trang nhật ký!", "info");
   };
 
+  const pendingPostsCount = useMemo(() => {
+    return posts.filter((p) => p.status === "pending_review").length;
+  }, [posts]);
+
   return (
     <AppContext.Provider
       value={{
@@ -2659,6 +2803,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // 1. Posts
         posts,
+        pendingPostsCount,
         activePostDetail,
         setActivePostDetail: handleSetActivePostDetail,
         likePost,

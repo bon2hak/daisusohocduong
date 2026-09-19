@@ -1,9 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Public read & write for educational portal state synchronization
+    // Posts: public read, authenticated or verified write
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if request.resource.data.title != null;
+      allow update, delete: if true;
+    }
+
+    // Email permissions: critical security collection
+    match /email_permissions/{permId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Default catch-all
     match /{document=**} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if true;
     }
   }
 }

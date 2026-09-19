@@ -129,6 +129,8 @@ export const AuthModal: React.FC = () => {
     removeSavedGoogleAccount,
     checkUserRegistered,
     loginWithGoogle,
+    findPermissionByEmail,
+    emailPermissions,
     showToast,
   } = useApp();
 
@@ -189,6 +191,26 @@ export const AuthModal: React.FC = () => {
     if (!cleanEmail || !cleanEmail.includes("@")) {
       showToast("Vui lòng nhập địa chỉ Gmail/Email hợp lệ!", "warning");
       return;
+    }
+
+    const matchedPerm = findPermissionByEmail(cleanEmail);
+    const isTargetAdmin =
+      matchedPerm?.role === "super_admin" ||
+      matchedPerm?.role === "teacher" ||
+      selectedAccount?.role === "super_admin" ||
+      selectedAccount?.role === "teacher" ||
+      cleanEmail === "bon2beaking2@gmail.com" ||
+      cleanEmail === "hoanghx@detham.edu.vn" ||
+      cleanEmail === "ninhdt@detham.edu.vn";
+
+    // Security Gate: Protect Administrative Accounts - require valid password/PIN
+    if (isTargetAdmin) {
+      const validPins = ["2026", "daisuso2026", "daisu2026", "admin2026", "••••••••"];
+      const isPinCorrect = validPins.includes(password.trim());
+      if (!isPinCorrect) {
+        showToast("Tài khoản Quản trị yêu cầu nhập đúng Mật khẩu hoặc Mã PIN bảo mật (2026)!", "error");
+        return;
+      }
     }
 
     // Check if this email is already registered in the system
@@ -260,14 +282,24 @@ export const AuthModal: React.FC = () => {
         ? (teacherPosition === "other" ? customTeacherPosition.trim() || "Giáo viên Cố vấn" : teacherPosition)
         : clubRole;
 
-    const assignedRole: UserRole =
-      accountType === "teacher"
-        ? finalPosition.includes("Chủ nhiệm")
-          ? "super_admin"
-          : "teacher"
-        : clubRole.includes("Trưởng ban") || clubRole.includes("Phó ban")
-        ? "ambassador"
-        : "student";
+    // Security Gate: Role assignment is strictly verified by system authority list.
+    // Self-claiming super_admin or teacher is prevented for safety.
+    const matchedPerm = findPermissionByEmail(targetEmail);
+    let assignedRole: UserRole = "student";
+    let assignedRoleTitle = "Học sinh Thành viên CLB";
+
+    if (matchedPerm && matchedPerm.status === "active") {
+      assignedRole = matchedPerm.role;
+      assignedRoleTitle = matchedPerm.roleTitle;
+    } else {
+      if (clubRole.includes("Trưởng ban") || clubRole.includes("Phó ban")) {
+        assignedRole = "ambassador";
+        assignedRoleTitle = "Đại sứ số Học đường";
+      } else {
+        assignedRole = "student";
+        assignedRoleTitle = accountType === "teacher" ? "Giáo viên Quan sát" : "Học sinh Thành viên CLB";
+      }
+    }
 
     const finalAvatar = customAvatarUrl.trim() || avatar;
 
@@ -277,12 +309,7 @@ export const AuthModal: React.FC = () => {
       accountType: accountType,
       classroom: finalClassroom,
       role: assignedRole,
-      roleTitle:
-        accountType === "teacher"
-          ? finalPosition
-          : assignedRole === "ambassador"
-          ? "Đại sứ số Học đường"
-          : "Học sinh Thành viên CLB",
+      roleTitle: assignedRoleTitle,
       clubRole: finalPosition,
       clubDuties: clubDuties,
       avatar: finalAvatar,

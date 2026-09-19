@@ -77,7 +77,35 @@ async function startServer() {
     }
   });
 
-  // POSTS CRUD
+  // Helper to verify admin / authorized rights on server
+  const verifyIsAdminOrAuthorized = (req: any, store: any) => {
+    const role = (req.headers["x-user-role"] as string) || req.body?.callerRole || req.query?.callerRole;
+    const email = (
+      (req.headers["x-user-email"] as string) ||
+      req.body?.callerEmail ||
+      req.query?.callerEmail ||
+      ""
+    ).toLowerCase().trim();
+
+    if (role === "super_admin" || role === "teacher") {
+      return true;
+    }
+
+    if (email && Array.isArray(store.emailPermissions)) {
+      const perm = store.emailPermissions.find(
+        (p: any) =>
+          p.email &&
+          p.email.toLowerCase() === email &&
+          (p.role === "super_admin" || p.role === "teacher") &&
+          p.status === "active"
+      );
+      if (perm) return true;
+    }
+
+    return false;
+  };
+
+  // POSTS CRUD with Server-side Access Control
   app.post("/api/posts", (req, res) => {
     try {
       const post = req.body;
@@ -88,9 +116,26 @@ async function startServer() {
         post.timestamp = Date.now();
       }
       const store = loadStore();
+      const isAuthorized = verifyIsAdminOrAuthorized(req, store);
+
+      // SECURITY ENFORCEMENT: If not super_admin or authorized teacher, force status = pending_review
+      if (!isAuthorized) {
+        post.status = "pending_review";
+        post.isFeatured = false;
+      } else if (!post.status) {
+        post.status = "published";
+      }
+
       const existingIdx = store.posts.findIndex((p) => p.id === post.id);
       let updatedPosts = [...store.posts];
       if (existingIdx >= 0) {
+        // If updating an existing post through post endpoint, check permission
+        const existing = store.posts[existingIdx];
+        if (existing.status === "published" && !isAuthorized) {
+          return res.status(403).json({
+            error: "Chỉ quản trị viên hoặc người được giao quyền mới được chỉnh sửa bài viết đã xuất bản.",
+          });
+        }
         updatedPosts[existingIdx] = post;
       } else {
         updatedPosts.unshift(post);
@@ -108,13 +153,53 @@ async function startServer() {
       const updateData = req.body;
       const store = loadStore();
       const idx = store.posts.findIndex((p) => p.id === id);
+
       if (idx === -1) {
-        // If not found in server list, append it
-        const newPost = { ...updateData, id };
-        saveStore({ posts: [newPost, ...store.posts] });
-        return res.json({ success: true, post: newPost });
+        return res.status(404).json({ error: "Không tìm thấy bài viết" });
       }
-      const updatedPost = { ...store.posts[idx], ...updateData };
+
+      const existingPost = store.posts[idx];
+      const isAuthorized = verifyIsAdminOrAuthorized(req, store);
+      const callerUserId = (req.headers["x-user-id"] as string) || req.body?.callerUserId;
+      const callerEmail = (
+        (req.headers["x-user-email"] as string) ||
+        req.body?.callerEmail ||
+        ""
+      ).toLowerCase().trim();
+
+      const isAuthor =
+        (callerUserId && existingPost.authorId === callerUserId) ||
+        (callerEmail && existingPost.authorId === callerEmail);
+
+      // 1. Phê duyệt bài viết (status -> published): Chỉ Quản trị viên và người được giao quyền
+      if (updateData.status === "published" && existingPost.status !== "published") {
+        if (!isAuthorized) {
+          return res.status(403).json({
+            error: "Chỉ quản trị viên hoặc người được giao quyền mới có quyền phê duyệt và xuất bản bài viết.",
+          });
+        }
+      }
+
+      // 2. Chỉnh sửa bài đã xuất bản: Chỉ Quản trị viên và người được giao quyền
+      if (existingPost.status === "published" && !isAuthorized) {
+        return res.status(403).json({
+          error: "Bài viết đã được xuất bản! Chỉ quản trị viên hoặc người được giao quyền mới có quyền sửa.",
+        });
+      }
+
+      // 3. Tác giả chỉ được sửa bài khi còn ở trạng thái pending_review
+      if (!isAuthorized && !isAuthor) {
+        return res.status(403).json({
+          error: "Bạn không có quyền chỉnh sửa bài viết này.",
+        });
+      }
+
+      // Nếu người sửa không phải là quản trị viên, không được phép chuyển trạng thái thành published
+      if (!isAuthorized && updateData.status === "published") {
+        updateData.status = "pending_review";
+      }
+
+      const updatedPost = { ...existingPost, ...updateData };
       const updatedPosts = [...store.posts];
       updatedPosts[idx] = updatedPost;
       saveStore({ posts: updatedPosts });
@@ -128,6 +213,39 @@ async function startServer() {
     try {
       const { id } = req.params;
       const store = loadStore();
+      const existingPost = store.posts.find((p) => p.id === id);
+
+      if (!existingPost) {
+        return res.status(404).json({ error: "Không tìm thấy bài viết" });
+      }
+
+      const isAuthorized = verifyIsAdminOrAuthorized(req, store);
+      const callerUserId = (req.headers["x-user-id"] as string) || req.body?.callerUserId;
+      const callerEmail = (
+        (req.headers["x-user-email"] as string) ||
+        req.body?.callerEmail ||
+        ""
+      ).toLowerCase().trim();
+
+      const isAuthor =
+        (callerUserId && existingPost.authorId === callerUserId) ||
+        (callerEmail && existingPost.authorId === callerEmail);
+
+      // SECURITY RULE:
+      // - If post is published: ONLY authorized admin can delete
+      // - If post is pending_review: authorized admin OR original author can delete
+      if (existingPost.status === "published" && !isAuthorized) {
+        return res.status(403).json({
+          error: "Bài viết đã xuất bản! Chỉ quản trị viên và người được giao quyền mới có quyền xoá bài viết.",
+        });
+      }
+
+      if (existingPost.status !== "published" && !isAuthorized && !isAuthor) {
+        return res.status(403).json({
+          error: "Bạn không có quyền xoá bài viết này.",
+        });
+      }
+
       const updatedPosts = store.posts.filter((p) => p.id !== id);
       saveStore({ posts: updatedPosts });
       res.json({ success: true, message: "Đã xóa bài viết khỏi máy chủ" });

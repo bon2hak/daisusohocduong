@@ -27,6 +27,7 @@ import {
   UserCheck,
   HeartHandshake,
   Users,
+  ArrowRight,
 } from "lucide-react";
 import { useApp, NavTab } from "../context/AppContext";
 import { UserRole } from "../types";
@@ -208,16 +209,20 @@ export const Navbar: React.FC = () => {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setIsModerationModalOpen(true)}
-                  className="relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors"
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all shadow-xs ${
+                    pendingCount > 0
+                      ? "bg-red-600 hover:bg-red-700 text-white ring-2 ring-red-300 animate-pulse"
+                      : "text-red-800 bg-red-50 hover:bg-red-100 border border-red-200"
+                  }`}
                   title={currentRole === "super_admin" ? "Ban Quản trị & Duyệt/Xoá bài (Ban Quản trị CLB)" : "Duyệt bài viết học sinh"}
                 >
-                  <ShieldCheck className="w-4 h-4 text-red-600" />
+                  <ShieldCheck className="w-4 h-4 text-inherit" />
                   <span className="hidden sm:inline">
                     {currentRole === "super_admin" ? "Quản trị & Duyệt bài" : "Duyệt bài"}
                   </span>
                   {pendingCount > 0 && (
-                    <span className="bg-amber-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                      {pendingCount}
+                    <span className="bg-amber-300 text-amber-950 text-[10px] font-black px-1.5 py-0.2 rounded-full shadow-xs">
+                      {pendingCount} chờ duyệt
                     </span>
                   )}
                 </button>
@@ -515,6 +520,30 @@ export const Navbar: React.FC = () => {
                 🏅 Hồ sơ ({currentUser.points} đ)
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Pending Posts Moderation Alert Banner for Authorized Admin / Teachers */}
+      {(currentRole === "super_admin" || currentRole === "teacher") && pendingCount > 0 && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white px-4 py-2 text-xs shadow-md border-t border-amber-400/40">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 font-medium">
+              <span className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600"></span>
+              </span>
+              <Bell className="w-4 h-4 animate-bounce shrink-0 text-amber-100" />
+              <span>
+                <strong>Thông báo Kiểm duyệt:</strong> Có <span className="bg-white text-orange-800 px-2 py-0.5 rounded-full font-black mx-1 shadow-2xs">{pendingCount} bài viết mới</span> đang chờ Ban Quản trị phê duyệt trước khi được xuất bản ra toàn trường.
+              </span>
+            </div>
+            <button
+              onClick={() => setIsModerationModalOpen(true)}
+              className="bg-white text-orange-800 hover:bg-orange-50 px-3 py-1 rounded-lg text-xs font-black shadow-xs transition-all active:scale-95 shrink-0 flex items-center gap-1 cursor-pointer"
+            >
+              <span>Vào bàn duyệt bài ngay</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}
