@@ -47,11 +47,11 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
       "Phối hợp tổ chức các ngày hội chuyển đổi số và phong trào thi đua."
     ],
     bio: "Ban Quản trị & Điều hành CLB Đại sứ số Trường THCS Đề Thám. Phụ trách công tác quản trị chung, điều phối hoạt động và hỗ trợ vận hành nền tảng số.",
-    contactEmail: "nampv@detham.edu.vn"
+    contactEmail: "dungnp@detham.edu.vn"
   },
   {
     id: "advisor_10",
-    name: "Cô Nguyễn Thị Mùi",
+    name: "Cô Vũ Thị Minh Nguyệt",
     role: "Ban Quản trị & Điều hành CLB",
     roleType: "leader",
     department: "Ban Quản trị & Phong trào Học sinh số",
@@ -64,7 +64,7 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
       "Đôn đốc và ghi nhận thi đua nề nếp văn hóa mạng trong học sinh."
     ],
     bio: "Ban Quản trị & Điều hành CLB Đại sứ số Trường THCS Đề Thám. Dẫn dắt phong trào học sinh số, lan tỏa tinh thần xung kích công nghệ trong đoàn viên, đội viên.",
-    contactEmail: "thuyht@detham.edu.vn"
+    contactEmail: "minhnguyetak@gmail.com"
   },
   {
     id: "advisor_02",
@@ -105,7 +105,7 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
     name: "Thầy Nguyễn Tấn Nhật",
     role: "Cố vấn AI và Công nghệ học tập",
     roleType: "advisor",
-    department: "Tổ AI & Công nghệ học tập",
+    department: "Tổ AI & Công nghệ học tập, STEM",
     avatar: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80",
     badge: "AI & Công nghệ học tập",
     color: "from-purple-600 to-indigo-800",
@@ -118,7 +118,7 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
   },
   {
     id: "advisor_05",
-    name: "Thầy Nguyễn Phú Dũng",
+    name: "Thầy Trần Minh Tấn",
     role: "Cố vấn Dữ liệu và Hỗ trợ giáo viên",
     roleType: "advisor",
     department: "Tổ Dữ liệu & Hỗ trợ Giáo viên",
@@ -130,7 +130,7 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
       "Hỗ trợ giáo viên ứng dụng công cụ số."
     ],
     bio: "Cố vấn Dữ liệu & Hỗ trợ giáo viên Trường THCS Đề Thám. Hướng dẫn nghiệp vụ khảo sát dữ liệu số và đồng hành cùng thầy cô ứng dụng công nghệ.",
-    contactEmail: "dungnp@detham.edu.vn"
+    contactEmail: "tanminh.ak@gmail.com"
   },
   {
     id: "advisor_06",
