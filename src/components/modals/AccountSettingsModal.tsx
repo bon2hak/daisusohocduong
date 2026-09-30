@@ -97,6 +97,7 @@ export const AccountSettingsModal: React.FC = () => {
     updateUserProfile,
     findPermissionByEmail,
     setIsAdminPinModalOpen,
+    openAdminPinModal,
     logout,
     showToast,
   } = useApp();
@@ -567,20 +568,18 @@ export const AccountSettingsModal: React.FC = () => {
                 <span>Đăng xuất</span>
               </button>
 
-              {currentUser.role === "super_admin" && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAccountSettingsModalOpen(false);
-                    setIsAdminPinModalOpen(true);
-                  }}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition-colors"
-                  title="Thay đổi Mã Khóa Bảo Mật Quản Trị"
-                >
-                  <Lock className="w-3.5 h-3.5 text-amber-700" />
-                  <span>Đổi Khóa Quản Trị</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAccountSettingsModalOpen(false);
+                  openAdminPinModal("change_key");
+                }}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition-colors shadow-2xs"
+                title="Thay đổi Mã Khóa Bảo Mật Quản Trị / Mật khẩu"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-700" />
+                <span>Đổi Mật Khẩu / Khóa Quản Trị</span>
+              </button>
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">

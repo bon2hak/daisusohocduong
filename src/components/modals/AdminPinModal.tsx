@@ -21,6 +21,8 @@ export const AdminPinModal: React.FC = () => {
   const {
     isAdminPinModalOpen,
     setIsAdminPinModalOpen,
+    adminPinModalTab,
+    setAdminPinModalTab,
     verifyAdminPin,
     setIsAuthModalOpen,
     currentRole,
@@ -31,7 +33,15 @@ export const AdminPinModal: React.FC = () => {
     showToast,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<"verify" | "change_key">("verify");
+  const [activeTab, setActiveTab] = useState<"verify" | "change_key">(adminPinModalTab || "verify");
+
+  React.useEffect(() => {
+    if (isAdminPinModalOpen) {
+      setActiveTab(adminPinModalTab || "verify");
+      setErrorMessage("");
+      setChangeKeyError("");
+    }
+  }, [isAdminPinModalOpen, adminPinModalTab]);
   
   // Verify form: Start empty by default to prevent leaking admin email
   const [adminEmailInput, setAdminEmailInput] = useState(
@@ -181,35 +191,33 @@ export const AdminPinModal: React.FC = () => {
           </p>
         </div>
 
-        {/* Tab Switcher if Super Admin */}
-        {isSuperAdmin && (
-          <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setActiveTab("verify")}
-              className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all ${
-                activeTab === "verify"
-                  ? "border-blue-600 text-blue-700 bg-white"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Xác Thực Vai Trò</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("change_key")}
-              className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all ${
-                activeTab === "change_key"
-                  ? "border-amber-600 text-amber-700 bg-white"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <Key className="w-4 h-4 text-amber-600" />
-              <span>Đổi Khóa Master Key</span>
-            </button>
-          </div>
-        )}
+        {/* Tab Switcher - ALWAYS VISIBLE TO ENSURE ACCESS TO CHANGE PASSWORD */}
+        <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setActiveTab("verify")}
+            className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all ${
+              activeTab === "verify"
+                ? "border-blue-600 text-blue-700 bg-white shadow-2xs"
+                : "border-transparent text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>1. Xác Thực Vai Trò</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("change_key")}
+            className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all ${
+              activeTab === "change_key"
+                ? "border-amber-600 text-amber-800 bg-amber-50/50 shadow-2xs"
+                : "border-transparent text-amber-800 hover:text-amber-900 bg-amber-50/20"
+            }`}
+          >
+            <Key className="w-4 h-4 text-amber-600" />
+            <span>2. Đổi Mật Khẩu / Khóa Master Key</span>
+          </button>
+        </div>
 
         {/* Body 1: Verify Admin Key */}
         {activeTab === "verify" && (
@@ -305,6 +313,17 @@ export const AdminPinModal: React.FC = () => {
                 <LogIn className="w-4 h-4 text-blue-600" />
                 <span>Đăng nhập qua Cổng Google Workspace</span>
               </button>
+
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("change_key")}
+                  className="w-full py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-2xs"
+                >
+                  <Key className="w-4 h-4 text-amber-600" />
+                  <span>Chuyển sang tab Đổi Mật Khẩu / Khóa Quản Trị</span>
+                </button>
+              </div>
             </div>
           </form>
         )}
@@ -312,10 +331,13 @@ export const AdminPinModal: React.FC = () => {
         {/* Body 2: Change Admin Master Key */}
         {activeTab === "change_key" && (
           <form onSubmit={handleChangeKeySubmit} className="p-6 space-y-4">
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl text-xs text-blue-900 flex items-start gap-2.5">
-              <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="leading-relaxed">
-                <span className="font-bold">Thay đổi Khóa Quản trị:</span> Đặt mã bảo mật mới cho hệ thống để tránh việc học sinh hoặc người ngoài can thiệp duyệt bài viết.
+                <span className="font-bold">Đổi Mật Khẩu / Khóa Quản Trị Hệ Thống:</span> Thiết lập mã khóa mới theo ý bạn để bảo vệ quyền duyệt và kiểm soát bài viết.
+                <div className="mt-1 font-mono text-[11px] text-amber-800 bg-white/80 p-1.5 rounded-lg border border-amber-200">
+                  Mã khóa hiện tại đang áp dụng: <strong>daisusodetham@2026</strong>
+                </div>
               </div>
             </div>
 
@@ -372,7 +394,7 @@ export const AdminPinModal: React.FC = () => {
               )}
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
               <button
                 type="submit"
                 disabled={isChangingKey}
@@ -380,6 +402,14 @@ export const AdminPinModal: React.FC = () => {
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{isChangingKey ? "Đang cập nhật..." : "Cập Nhật Mã Khóa Bảo Mật Mới"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("verify")}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200"
+              >
+                <span>Quay lại tab Xác Thực Vai Trò</span>
               </button>
             </div>
           </form>

@@ -28,6 +28,7 @@ import {
   HeartHandshake,
   Users,
   ArrowRight,
+  Key,
 } from "lucide-react";
 import { useApp, NavTab } from "../context/AppContext";
 import { UserRole } from "../types";
@@ -49,6 +50,7 @@ export const Navbar: React.FC = () => {
     setIsAuthModalOpen,
     isAdminPinModalOpen,
     setIsAdminPinModalOpen,
+    openAdminPinModal,
     setIsAccountSettingsModalOpen,
     setIsEmailPermissionModalOpen,
     logout,
@@ -145,14 +147,34 @@ export const Navbar: React.FC = () => {
               )}
 
               {/* Admin Verification CTA if not Super Admin */}
-              {currentRole !== "super_admin" && (
+              {currentRole !== "super_admin" ? (
+                <>
+                  <button
+                    onClick={() => setIsAdminPinModalOpen(true)}
+                    className="flex items-center gap-1 bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold px-2 py-1 rounded-md text-xs transition-all shadow-xs active:scale-95"
+                    title="Xác thực quyền Quản trị viên bằng Khóa Bảo Mật Quản Trị"
+                  >
+                    <Lock className="w-3 h-3" />
+                    <span>Mở Quyền Quản Trị</span>
+                  </button>
+
+                  <button
+                    onClick={() => openAdminPinModal("change_key")}
+                    className="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2 py-1 rounded-md text-xs transition-all shadow-xs active:scale-95 border border-amber-300"
+                    title="Đổi Mã Khóa Bảo Mật Quản Trị / Mật khẩu"
+                  >
+                    <Key className="w-3 h-3" />
+                    <span>Đổi Mật Khẩu</span>
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={() => setIsAdminPinModalOpen(true)}
-                  className="flex items-center gap-1 bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold px-2 py-1 rounded-md text-xs transition-all shadow-xs active:scale-95"
-                  title="Xác thực quyền Quản trị viên bằng Khóa Bảo Mật Quản Trị"
+                  onClick={() => openAdminPinModal("change_key")}
+                  className="flex items-center gap-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-2 py-1 rounded-md text-xs transition-all shadow-xs active:scale-95 border border-amber-300"
+                  title="Đổi Mã Khóa Bảo Mật Quản Trị / Mật khẩu"
                 >
-                  <Lock className="w-3 h-3" />
-                  <span>Mở Quyền Quản Trị</span>
+                  <Key className="w-3 h-3" />
+                  <span>Đổi Mật Khẩu</span>
                 </button>
               )}
             </div>
@@ -375,6 +397,17 @@ export const Navbar: React.FC = () => {
                     >
                       <Award className="w-4 h-4 text-amber-500" />
                       <span>Hồ sơ năng lực & Huy hiệu số ({currentUser.points} đ)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        openAdminPinModal("change_key");
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-amber-900 hover:bg-amber-50 rounded-xl font-bold transition-colors text-left"
+                    >
+                      <Key className="w-4 h-4 text-amber-600" />
+                      <span>Đổi Mật Khẩu / Khóa Quản Trị</span>
                     </button>
 
                     <button

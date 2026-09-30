@@ -61,7 +61,7 @@ function getInitialStore(): AppServerStore {
     advisors: [...CLUB_ADVISORY_BOARD],
     counselingMessages: [],
     userProfiles: {},
-    adminMasterKey: "DaisusoDeTham@BQT2026",
+    adminMasterKey: "daisusodetham@2026",
     lastUpdated: new Date().toISOString(),
   };
 }
