@@ -18,11 +18,11 @@ export const LeaderboardView: React.FC = () => {
   const [tab, setTab] = useState<"individual" | "class">("individual");
 
   const classLeaderboard = [
-    { rank: 1, name: "Chi đoàn / Lớp 8A", points: 2850, members: 42, works: 28, badge: "Lớp Số Xuất Sắc Nhất" },
-    { rank: 2, name: "Chi đoàn / Lớp 9B", points: 2420, members: 39, works: 21, badge: "Tiên Phong Kỹ Năng Số" },
-    { rank: 3, name: "Chi đoàn / Lớp 7B", points: 1980, members: 40, works: 19, badge: "Sáng Tạo Vượt Bậc" },
-    { rank: 4, name: "Chi đoàn / Lớp 10A1", points: 1650, members: 38, works: 14, badge: "Tập Thể Tích Cực" },
-    { rank: 5, name: "Chi đoàn / Lớp 6A", points: 1200, members: 41, works: 11, badge: "Gương Mặt Mới" },
+    { rank: 1, name: "Chi đội / Lớp 8A1", points: 2850, members: 42, works: 28, badge: "Lớp Số Xuất Sắc Nhất" },
+    { rank: 2, name: "Chi đội / Lớp 9B1", points: 2420, members: 39, works: 21, badge: "Tiên Phong Kỹ Năng Số" },
+    { rank: 3, name: "Chi đội / Lớp 7B1", points: 1980, members: 40, works: 19, badge: "Sáng Tạo Vượt Bậc" },
+    { rank: 4, name: "Chi đội / Lớp 9A1", points: 1650, members: 38, works: 14, badge: "Tập Thể Tích Cực" },
+    { rank: 5, name: "Chi đội / Lớp 6A1", points: 1200, members: 41, works: 11, badge: "Gương Mặt Mới" },
   ];
 
   const pointRules = [

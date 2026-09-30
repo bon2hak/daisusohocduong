@@ -4,27 +4,21 @@ import {
   Sparkles,
   ShieldCheck,
   GraduationCap,
-  Briefcase,
   Mail,
   User,
   Lock,
   ArrowRight,
-  Upload,
-  Layers,
-  Award,
   Eye,
   EyeOff,
-  UserPlus,
   KeyRound,
-  CheckCircle2,
-  Trash2,
   ChevronLeft,
-  School,
-  Sparkle,
   AlertCircle,
+  Clock,
+  Layers,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
-import { UserRole, SavedGoogleAccount } from "../../types";
+import { UserRole } from "../../types";
+import { SCHOOL_CLASSROOMS } from "../../data/initialData";
 
 const AVATAR_PRESETS = [
   {
@@ -57,28 +51,6 @@ const AVATAR_PRESETS = [
     url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
     category: "teacher",
   },
-];
-
-const CLASSROOM_OPTIONS = [
-  "Lớp 6A", "Lớp 6B", "Lớp 6C", "Lớp 6D",
-  "Lớp 7A", "Lớp 7B", "Lớp 7C", "Lớp 7D",
-  "Lớp 8A", "Lớp 8B", "Lớp 8C", "Lớp 8D",
-  "Lớp 9A", "Lớp 9B", "Lớp 9C", "Lớp 9D",
-];
-
-const TEACHER_POSITIONS = [
-  "Chủ nhiệm Câu lạc bộ",
-  "Cố vấn Kỹ thuật và Chuyển đổi số",
-  "Cố vấn Đánh giá và Kiểm định chất lượng",
-  "Cố vấn AI và Công nghệ học tập",
-  "Cố vấn Dữ liệu và Hỗ trợ giáo viên",
-  "Cố vấn Công dân số và Tuyên truyền",
-  "Cố vấn Truyền thông số",
-  "Cố vấn Tâm lý học đường",
-  "Tổ trưởng Chuyên môn Tin học",
-  "Tổng phụ trách Đội TNTP",
-  "Giáo viên Bộ môn Tin học",
-  "Giáo viên Cố vấn Chuyên môn",
 ];
 
 const CLUB_ROLE_PRESETS = {
@@ -115,10 +87,7 @@ const CLUB_DUTIES_PRESETS = {
     "Tư vấn các nền tảng số phù hợp, hỗ trợ kỹ thuật và kiểm tra tính khả thi sản phẩm số.",
     "Theo dõi tiến độ các tổ, kiểm tra minh chứng hoạt động và đánh giá kết quả thành viên.",
     "Định hướng AI trong giáo dục và hướng dẫn Tổ AI học tập.",
-    "Hướng dẫn khảo sát số và hỗ trợ giáo viên ứng dụng công cụ số.",
     "Phụ trách nội dung giáo dục công dân số và hướng dẫn Tổ An toàn, Văn hóa số.",
-    "Quản lý hình ảnh truyền thông CLB và hướng dẫn Tổ Truyền thông số.",
-    "Tư vấn tâm lý học đường, an toàn cảm xúc trong môi trường số và hỗ trợ giải tỏa áp lực.",
   ],
 };
 
@@ -126,204 +95,183 @@ export const AuthModal: React.FC = () => {
   const {
     isAuthModalOpen,
     setIsAuthModalOpen,
-    savedGoogleAccounts,
-    removeSavedGoogleAccount,
     checkUserRegistered,
     loginWithGoogle,
-    findPermissionByEmail,
     emailPermissions,
-    currentRole,
-    currentUser,
+    adminMasterKey,
     showToast,
   } = useApp();
 
-  // Navigation steps: 'account_chooser' | 'enter_password' | 'custom_email' | 'first_time_declaration'
-  const [step, setStep] = useState<
-    "account_chooser" | "enter_password" | "custom_email" | "first_time_declaration"
-  >("account_chooser");
+  // Mode: "student" (Học sinh) | "admin" (Ban Quản Trị & Cố Vấn)
+  const [authMode, setAuthMode] = useState<"student" | "admin">("student");
 
-  // Selected or active account details
-  const [selectedAccount, setSelectedAccount] = useState<SavedGoogleAccount | null>(null);
+  // Step: "login" | "first_time_declaration"
+  const [step, setStep] = useState<"login" | "first_time_declaration">("login");
+
+  // Student Form fields (ALWAYS EMPTY BY DEFAULT FOR STUDENT INPUT)
+  const [studentEmail, setStudentEmail] = useState("");
+  const [studentPassword, setStudentPassword] = useState("");
+  const [showStudentPassword, setShowStudentPassword] = useState(false);
+
+  // Admin Form fields
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminSecurityKey, setAdminSecurityKey] = useState("");
+  const [showAdminKey, setShowAdminKey] = useState(false);
+  const [adminAuthError, setAdminAuthError] = useState("");
+
+  // First-time declaration form state (for students)
   const [targetEmail, setTargetEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberPassword, setRememberPassword] = useState(false);
-
-  // Security authorization for viewing/unhiding passwords
-  const [isPasswordViewUnlocked, setIsPasswordViewUnlocked] = useState(false);
-  const [showPinPrompt, setShowPinPrompt] = useState(false);
-  const [pinUnlockInput, setPinUnlockInput] = useState("");
-  const [pinUnlockError, setPinUnlockError] = useState("");
-
-  // First-time declaration form state
-  const [accountType, setAccountType] = useState<"student" | "teacher">("student");
   const [fullName, setFullName] = useState("");
-  const [classroom, setClassroom] = useState("Lớp 8A");
+  const [classroom, setClassroom] = useState("Lớp 7A1");
   const [customClassroom, setCustomClassroom] = useState("");
-  const [teacherPosition, setTeacherPosition] = useState(TEACHER_POSITIONS[0]);
-  const [customTeacherPosition, setCustomTeacherPosition] = useState("");
   const [clubRole, setClubRole] = useState(CLUB_ROLE_PRESETS.student[0]);
   const [clubDuties, setClubDuties] = useState(CLUB_DUTIES_PRESETS.student[0]);
   const [avatar, setAvatar] = useState(AVATAR_PRESETS[0].url);
   const [customAvatarUrl, setCustomAvatarUrl] = useState("");
   const [bio, setBio] = useState("");
 
-  // Reset state on open
+  // Reset state on open: Cổng 1 always opens empty for student self-input
   useEffect(() => {
     if (isAuthModalOpen) {
-      setStep("account_chooser");
-      setSelectedAccount(null);
-      setTargetEmail("");
-      setPassword("");
-      setShowPassword(false);
-      setRememberPassword(false);
-      setIsPasswordViewUnlocked(false);
-      setShowPinPrompt(false);
-      setPinUnlockInput("");
-      setPinUnlockError("");
+      setAuthMode("student");
+      setStep("login");
+      setStudentEmail("");
+      setStudentPassword("");
+      setShowStudentPassword(false);
+      setAdminEmail("");
+      setAdminSecurityKey("");
+      setShowAdminKey(false);
+      setAdminAuthError("");
     }
   }, [isAuthModalOpen]);
 
   if (!isAuthModalOpen) return null;
 
-  // Check if current user is authorized to reveal/view hidden passwords
-  const isAuthorizedToViewPassword = (): boolean => {
-    if (currentRole === "super_admin" || currentRole === "teacher") return true;
-
-    const perm = findPermissionByEmail(currentUser.email);
-    if (perm && (perm.role === "super_admin" || perm.role === "teacher") && perm.status === "active") {
-      return true;
-    }
-
-    if (isPasswordViewUnlocked) return true;
-
-    return false;
-  };
-
-  // Toggle password visibility: If not authorized, ask for PIN
-  const handleTogglePasswordVisibility = () => {
-    if (showPassword) {
-      setShowPassword(false);
-      return;
-    }
-
-    if (isAuthorizedToViewPassword()) {
-      setShowPassword(true);
-      showToast("Đã hiển thị mật khẩu (Quyền Quản trị viên)", "info");
-    } else {
-      setShowPinPrompt(true);
-      setPinUnlockInput("");
-      setPinUnlockError("");
-    }
-  };
-
-  // Verify PIN for password visibility
-  const handleVerifyPinToViewPassword = (e: React.FormEvent) => {
+  // 1. Process Student Login (Self-input)
+  const handleStudentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const validPins = ["2026", "daisuso2026", "daisu2026", "admin2026"];
-    if (validPins.includes(pinUnlockInput.trim())) {
-      setIsPasswordViewUnlocked(true);
-      setShowPassword(true);
-      setShowPinPrompt(false);
-      setPinUnlockInput("");
-      setPinUnlockError("");
-      showToast("Xác thực quyền Quản trị thành công! Đã hiển thị mật khẩu.", "success");
-    } else {
-      setPinUnlockError("Mã PIN bảo mật không chính xác. Bạn không có quyền xem mật khẩu này!");
-    }
-  };
+    const cleanEmail = studentEmail.trim().toLowerCase();
 
-  // Handle clicking on a saved account
-  const handleSelectSavedAccount = (acc: SavedGoogleAccount) => {
-    setSelectedAccount(acc);
-    setTargetEmail(acc.email);
-    setPassword(""); // Always clear password, never pre-fill
-    setShowPassword(false);
-    setStep("enter_password");
-  };
-
-  // Process Continue/Submit from password or email entry
-  const handleContinueWithAccount = (emailToVerify: string) => {
-    const cleanEmail = emailToVerify.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) {
-      showToast("Vui lòng nhập địa chỉ Gmail/Email hợp lệ!", "warning");
+      showToast("Vui lòng nhập địa chỉ Gmail học sinh hợp lệ!", "warning");
       return;
     }
 
-    const matchedPerm = findPermissionByEmail(cleanEmail);
-    const isTargetAdmin =
-      matchedPerm?.role === "super_admin" ||
-      matchedPerm?.role === "teacher" ||
-      selectedAccount?.role === "super_admin" ||
-      selectedAccount?.role === "teacher" ||
-      cleanEmail === "bon2beaking2@gmail.com" ||
-      cleanEmail === "hoanghx@detham.edu.vn" ||
-      cleanEmail === "ninhdt@detham.edu.vn";
-
-    // Security Gate: Protect Administrative Accounts - require valid password/PIN
-    if (isTargetAdmin) {
-      const validPins = ["2026", "daisuso2026", "daisu2026", "admin2026"];
-      const isPinCorrect = validPins.includes(password.trim());
-      if (!isPinCorrect) {
-        showToast("Tài khoản Quản trị yêu cầu nhập đúng Mật khẩu hoặc Mã PIN bảo mật đã được cấp!", "error");
-        return;
-      }
-    } else {
-      if (!password.trim()) {
-        showToast("Vui lòng nhập mật khẩu tài khoản của bạn!", "warning");
-        return;
-      }
+    if (!studentPassword.trim()) {
+      showToast("Vui lòng nhập mật khẩu tài khoản của bạn!", "warning");
+      return;
     }
 
-    // Check if this email is already registered in the system
+    // Check if this student is already registered
     const regStatus = checkUserRegistered(cleanEmail);
 
     if (!regStatus.isRegistered) {
-      // FIRST TIME LOGIN -> Switch to declaration form!
+      // First time student -> Open declaration form
       setTargetEmail(cleanEmail);
-      // Auto guess name from email if available
       const guessedName = cleanEmail.split("@")[0].replace(/[._-]/g, " ");
       const formattedGuess = guessedName
         .split(" ")
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
       setFullName(formattedGuess);
-
-      if (cleanEmail.includes("detham.edu.vn") || cleanEmail.includes("teacher") || cleanEmail.includes("thcs")) {
-        setAccountType("teacher");
-        setTeacherPosition(TEACHER_POSITIONS[1]);
-        setClubRole(CLUB_ROLE_PRESETS.teacher[1]);
-        setClubDuties(CLUB_DUTIES_PRESETS.teacher[1]);
-        setAvatar(AVATAR_PRESETS[3].url);
-      } else {
-        setAccountType("student");
-        setClassroom("Lớp 8A");
-        setClubRole(CLUB_ROLE_PRESETS.student[0]);
-        setClubDuties(CLUB_DUTIES_PRESETS.student[0]);
-        setAvatar(AVATAR_PRESETS[0].url);
-      }
-
+      setClassroom("Lớp 7A1");
+      setClubRole(CLUB_ROLE_PRESETS.student[0]);
+      setClubDuties(CLUB_DUTIES_PRESETS.student[0]);
+      setAvatar(AVATAR_PRESETS[0].url);
       setStep("first_time_declaration");
-      showToast("Tài khoản lần đầu đăng nhập. Vui lòng khai báo thông tin thành viên!", "info");
+      showToast("Tài khoản học sinh đăng nhập lần đầu. Vui lòng khai báo thông tin thành viên!", "info");
     } else {
-      // RETURNING USER -> Auto login!
+      // Returning student -> Login directly with student privileges
       const existingProfile = regStatus.profile;
       loginWithGoogle({
         email: cleanEmail,
-        name: existingProfile?.name || selectedAccount?.name,
-        accountType: existingProfile?.accountType || selectedAccount?.accountType,
-        classroom: existingProfile?.classroom || selectedAccount?.classroom,
-        role: existingProfile?.role || selectedAccount?.role,
-        roleTitle: existingProfile?.roleTitle || selectedAccount?.roleTitle,
-        clubRole: existingProfile?.clubRole || selectedAccount?.clubRole,
-        clubDuties: existingProfile?.clubDuties || selectedAccount?.clubDuties,
-        avatar: existingProfile?.avatar || selectedAccount?.avatar,
+        name: existingProfile?.name,
+        accountType: "student",
+        classroom: existingProfile?.classroom || "Lớp 7A1",
+        role: existingProfile?.role === "ambassador" ? "ambassador" : "student",
+        roleTitle: existingProfile?.roleTitle || "Học sinh Thành viên CLB",
+        clubRole: existingProfile?.clubRole || "Thành viên CLB Đại sứ số",
+        clubDuties: existingProfile?.clubDuties || CLUB_DUTIES_PRESETS.student[0],
+        avatar: existingProfile?.avatar || AVATAR_PRESETS[0].url,
+        password: studentPassword,
       });
       setIsAuthModalOpen(false);
     }
   };
 
-  // Submit first-time declaration
+  // 2. Process Admin / Teacher Login (High Security Gate)
+  const handleAdminSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminAuthError("");
+
+    const cleanEmail = adminEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setAdminAuthError("Vui lòng nhập địa chỉ Gmail quản trị hợp lệ!");
+      return;
+    }
+
+    if (!adminSecurityKey.trim()) {
+      setAdminAuthError("Vui lòng nhập Mã Khóa Bảo Mật Quản Trị!");
+      return;
+    }
+
+    // Check if this email is permitted as super_admin or teacher
+    const isPermittedEmail =
+      cleanEmail === "bon2beaking2@gmail.com" ||
+      cleanEmail === "hoanghx@detham.edu.vn" ||
+      emailPermissions.some(
+        (p) =>
+          p.email.toLowerCase() === cleanEmail &&
+          (p.role === "super_admin" || p.role === "teacher") &&
+          p.status === "active"
+      );
+
+    if (!isPermittedEmail) {
+      setAdminAuthError(
+        "Email này không thuộc danh sách Ban Quản Trị & Cố Vấn được phê chuẩn. Vui lòng liên hệ Thầy Huỳnh Xuân Hoàng!"
+      );
+      return;
+    }
+
+    // Check if adminMasterKey matches (eliminates hardcoded 2026 pin)
+    if (adminSecurityKey.trim() !== adminMasterKey) {
+      setAdminAuthError(
+        "Mã Khóa Bảo Mật Quản Trị không chính xác! Vui lòng nhập đúng Khóa Bảo Mật được cấp."
+      );
+      return;
+    }
+
+    // Authentication succeeded!
+    const matchedPerm = emailPermissions.find(
+      (p) => p.email.toLowerCase() === cleanEmail && p.status === "active"
+    );
+
+    const targetRole = matchedPerm ? matchedPerm.role : "super_admin";
+    const targetTitle = matchedPerm ? matchedPerm.roleTitle : "Chủ nhiệm CLB & Quản trị viên Tối cao";
+    const targetClubRole = matchedPerm ? matchedPerm.clubRole : "Chủ nhiệm Câu lạc bộ";
+    const targetName = matchedPerm ? matchedPerm.name : "Thầy Huỳnh Xuân Hoàng";
+
+    loginWithGoogle({
+      email: cleanEmail,
+      name: targetName,
+      accountType: "teacher",
+      classroom: matchedPerm?.classroom || "Ban Quản Trị CLB Đại Sứ Số",
+      role: targetRole,
+      roleTitle: targetTitle,
+      clubRole: targetClubRole,
+      clubDuties: matchedPerm?.clubDuties || "Quản trị tối cao toàn bộ hệ thống, phân quyền email, duyệt & xuất bản bài viết",
+      avatar:
+        targetRole === "super_admin"
+          ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+          : "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80",
+      password: adminSecurityKey.trim(),
+      adminKey: adminSecurityKey.trim(),
+    });
+
+    setIsAuthModalOpen(false);
+  };
+
+  // 3. Complete First-Time Declaration for Students
   const handleCompleteFirstTimeDeclaration = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -332,78 +280,39 @@ export const AuthModal: React.FC = () => {
       return;
     }
 
-    const finalClassroom =
-      accountType === "student"
-        ? (classroom === "other" ? customClassroom.trim() || "Lớp 8A" : classroom)
-        : (teacherPosition === "other" ? customTeacherPosition.trim() || "Giáo viên Cố vấn" : teacherPosition);
+    const finalClassroom = classroom === "other" ? customClassroom.trim() || "Lớp 7A1" : classroom;
+    const finalAvatar = customAvatarUrl.trim() || avatar;
 
-    const finalPosition =
-      accountType === "teacher"
-        ? (teacherPosition === "other" ? customTeacherPosition.trim() || "Giáo viên Cố vấn" : teacherPosition)
-        : clubRole;
-
-    // Security Gate: Role assignment is strictly verified by system authority list.
-    // Self-claiming super_admin or teacher is prevented for safety.
-    const matchedPerm = findPermissionByEmail(targetEmail);
     let assignedRole: UserRole = "student";
     let assignedRoleTitle = "Học sinh Thành viên CLB";
 
-    if (matchedPerm && matchedPerm.status === "active") {
-      assignedRole = matchedPerm.role;
-      assignedRoleTitle = matchedPerm.roleTitle;
-    } else {
-      if (clubRole.includes("Trưởng ban") || clubRole.includes("Phó ban")) {
-        assignedRole = "ambassador";
-        assignedRoleTitle = "Đại sứ số Học đường";
-      } else {
-        assignedRole = "student";
-        assignedRoleTitle = accountType === "teacher" ? "Giáo viên Quan sát" : "Học sinh Thành viên CLB";
-      }
+    if (clubRole.includes("Trưởng ban") || clubRole.includes("Phó ban")) {
+      assignedRole = "ambassador";
+      assignedRoleTitle = "Đại sứ số Học đường";
     }
-
-    const finalAvatar = customAvatarUrl.trim() || avatar;
 
     loginWithGoogle({
       email: targetEmail,
       name: fullName.trim(),
-      accountType: accountType,
+      accountType: "student",
       classroom: finalClassroom,
       role: assignedRole,
       roleTitle: assignedRoleTitle,
-      clubRole: finalPosition,
+      clubRole: clubRole,
       clubDuties: clubDuties,
       avatar: finalAvatar,
-      bio: bio.trim() || `${accountType === "teacher" ? "Giáo viên" : "Học sinh"} Trường THCS Đề Thám.`,
+      bio: bio.trim() || `Học sinh ${finalClassroom} Trường THCS Đề Thám. Tham gia CLB Đại sứ số.`,
     });
 
     setIsAuthModalOpen(false);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      showToast("Vui lòng chọn file hình ảnh (PNG, JPG, JPEG)!", "warning");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setAvatar(event.target.result as string);
-        setCustomAvatarUrl("");
-        showToast("Đã tải ảnh đại diện lên thành công!", "success");
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
       <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Google-Branded Header */}
-        <div className="bg-white px-6 sm:px-8 pt-7 pb-5 border-b border-slate-100 relative">
+        {/* Top Header */}
+        <div className="bg-white px-6 sm:px-8 pt-6 pb-4 border-b border-slate-100 relative">
           <button
             onClick={() => setIsAuthModalOpen(false)}
             className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
@@ -413,7 +322,7 @@ export const AuthModal: React.FC = () => {
           </button>
 
           <div className="flex items-center gap-3 mb-3">
-            {/* Google Logo Icon */}
+            {/* Google Logo */}
             <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center shadow-xs shrink-0">
               <svg className="w-6 h-6" viewBox="0 0 24 24">
                 <path
@@ -437,393 +346,241 @@ export const AuthModal: React.FC = () => {
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                  Google Workspace Identity
+                  Google Workspace for Education
                 </span>
                 <span className="text-[11px] font-bold text-slate-500">THCS Đề Thám</span>
               </div>
               <h2 className="text-lg sm:text-xl font-black text-slate-900 leading-tight mt-0.5">
-                {step === "account_chooser"
-                  ? "Chọn tài khoản Google để tiếp tục"
-                  : step === "enter_password"
-                  ? "Xác thực tài khoản Google"
-                  : step === "custom_email"
-                  ? "Đăng nhập tài khoản Google khác"
-                  : "Bản Khai Báo Thông Tin Thành Viên"}
+                {step === "first_time_declaration"
+                  ? "Bản Khai Báo Thông Tin Thành Viên"
+                  : authMode === "student"
+                  ? "Cổng Đăng Nhập Học Sinh & Thành Viên"
+                  : "Cổng Bảo Mật Ban Quản Trị & Cố Vấn"}
               </h2>
             </div>
           </div>
 
-          <p className="text-xs text-slate-500">
-            {step === "account_chooser"
-              ? "Chọn tài khoản Gmail đã lưu trên thiết bị này để tiếp tục sử dụng Cổng CLB Đại Sứ Số."
-              : step === "enter_password"
-              ? "Nếu mật khẩu đã được lưu sẵn trên máy, bạn chỉ cần bấm Tiếp tục để dùng app."
-              : step === "custom_email"
-              ? "Nhập địa chỉ Gmail và mật khẩu của bạn để đăng nhập."
-              : "Hoàn tất các mục khai báo dưới đây dành cho thành viên đăng nhập lần đầu."}
-          </p>
-        </div>
-
-        {/* Modal Main Content */}
-        <div className="p-6 sm:p-8 max-h-[72vh] overflow-y-auto space-y-6">
-
-          {/* =========================================================================
-              STEP 1: ACCOUNT CHOOSER (Bảng tài khoản Gmail đã lưu trên máy)
-             ========================================================================= */}
-          {step === "account_chooser" && (
-            <div className="space-y-4">
-              <div className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Tài khoản Gmail đã lưu trên máy ({savedGoogleAccounts.length}):</span>
-                <span className="text-[11px] text-blue-600 font-normal">Chạm để chọn & đăng nhập</span>
-              </div>
-
-              {/* Account list */}
-              <div className="space-y-2">
-                {savedGoogleAccounts.map((acc) => {
-                  const isTeacher = acc.accountType === "teacher" || acc.role === "teacher" || acc.role === "super_admin";
-                  return (
-                    <div
-                      key={acc.email}
-                      onClick={() => handleSelectSavedAccount(acc)}
-                      className="group flex items-center justify-between p-3.5 bg-slate-50 hover:bg-blue-50/70 border border-slate-200 hover:border-blue-300 rounded-2xl cursor-pointer transition-all active:scale-99 shadow-2xs hover:shadow-xs"
-                    >
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                        <div className="relative shrink-0">
-                          <img
-                            src={acc.avatar}
-                            alt={acc.name}
-                            className={`w-11 h-11 rounded-xl object-cover ring-2 ${
-                              acc.role === "super_admin"
-                                ? "ring-red-400"
-                                : isTeacher
-                                ? "ring-amber-400"
-                                : "ring-blue-400"
-                            }`}
-                          />
-                          <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-xs border border-slate-200">
-                            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24">
-                              <path
-                                fill="#4285F4"
-                                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17Z"
-                              />
-                              <path
-                                fill="#34A853"
-                                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24Z"
-                              />
-                              <path
-                                fill="#FBBC05"
-                                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"
-                              />
-                              <path
-                                fill="#EA4335"
-                                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"
-                              />
-                            </svg>
-                          </span>
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-700 truncate">
-                              {acc.name}
-                            </span>
-                            {acc.classroom && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-white border border-slate-200 text-slate-600">
-                                {acc.classroom}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="text-xs text-slate-500 font-medium truncate mt-0.5">
-                            {acc.email}
-                          </div>
-
-                          <div className="flex items-center gap-2 mt-1">
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                acc.role === "super_admin"
-                                  ? "bg-red-100 text-red-700"
-                                  : isTeacher
-                                  ? "bg-amber-100 text-amber-800"
-                                  : acc.role === "ambassador"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : "bg-emerald-100 text-emerald-800"
-                              }`}
-                            >
-                              {acc.roleTitle || acc.clubRole || (isTeacher ? "Giáo viên" : "Học sinh")}
-                            </span>
-
-                            <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-medium">
-                              <Lock className="w-3 h-3 text-slate-400" />
-                              <span>Bảo vệ bằng mật khẩu</span>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right Action */}
-                      <div className="flex items-center gap-2 pl-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeSavedGoogleAccount(acc.email);
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-60 group-hover:opacity-100"
-                          title="Gỡ tài khoản này khỏi máy"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-transform" />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Add / Use another account */}
+          {/* Mode Switch Tabs (Only when not in first_time_declaration) */}
+          {step !== "first_time_declaration" && (
+            <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedAccount(null);
-                  setTargetEmail("");
-                  setPassword("");
-                  setStep("custom_email");
+                  setAuthMode("student");
+                  setStep("login");
                 }}
-                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 bg-white hover:bg-slate-50 text-slate-700 hover:text-blue-600 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-2xl font-bold text-xs sm:text-sm transition-all"
+                className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                  authMode === "student"
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
               >
-                <UserPlus className="w-4 h-4 text-blue-600" />
-                <span>Sử dụng một tài khoản Gmail khác</span>
+                <GraduationCap className="w-4 h-4" />
+                <span>1. Học Sinh Tự Nhập Tài Khoản</span>
               </button>
 
-              {/* Safe storage notice */}
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>
-                  Các tài khoản được bảo mật theo phiên làm việc. Khi chọn tài khoản đã lưu mật khẩu, bạn có thể vào ngay ứng dụng chỉ với 1 thao tác.
-                </span>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode("admin");
+                  setAdminAuthError("");
+                }}
+                className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                  authMode === "admin"
+                    ? "bg-slate-900 text-amber-300 shadow-sm shadow-slate-900/40 border border-amber-400/40"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span>2. Ban Quản Trị & Cố Vấn</span>
+              </button>
             </div>
           )}
+        </div>
 
+        {/* Content Area */}
+        <div className="p-6 sm:p-8 max-h-[72vh] overflow-y-auto space-y-5">
+          
           {/* =========================================================================
-              STEP 2: ENTER PASSWORD (Tài khoản đã chọn -> Tiếp tục hoặc nhập pass)
+              TAB 1: HỌC SINH TỰ NHẬP (KHÔNG HIỂN THỊ TÀI KHOẢN CÓ SẴN)
              ========================================================================= */}
-          {step === "enter_password" && selectedAccount && (
-            <div className="space-y-6 animate-in fade-in duration-150">
-              {/* Profile Card Summary */}
-              <div className="flex items-center justify-between p-4 bg-blue-50/70 border border-blue-200 rounded-2xl">
-                <div className="flex items-center gap-3 min-w-0">
-                  <img
-                    src={selectedAccount.avatar}
-                    alt={selectedAccount.name}
-                    className="w-12 h-12 rounded-2xl object-cover ring-2 ring-blue-400 shadow-xs"
-                  />
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-slate-900 truncate">
-                      {selectedAccount.name}
-                    </div>
-                    <div className="text-xs text-blue-700 font-medium truncate">
-                      {selectedAccount.email}
-                    </div>
-                    <div className="text-[11px] text-slate-500">
-                      {selectedAccount.classroom || "CLB Đại Sứ Số"} • {selectedAccount.roleTitle}
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setStep("account_chooser")}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-white hover:bg-blue-100/60 px-3 py-1.5 rounded-xl border border-blue-200 transition-colors shrink-0"
-                >
-                  Đổi tài khoản
-                </button>
-              </div>
-
-              {/* Password Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Nhập mật khẩu tài khoản Google <span className="text-red-500">*</span>
-                  </label>
-                  <span className="text-[11px] text-slate-500 flex items-center gap-1 font-medium">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Mật khẩu được bảo vệ</span>
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Nhập mật khẩu Gmail để đăng nhập..."
-                    autoFocus
-                    className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-10 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden transition-all font-medium"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleTogglePasswordVisibility}
-                    title={
-                      showPassword
-                        ? "Ẩn mật khẩu"
-                        : isAuthorizedToViewPassword()
-                        ? "Hiển thị mật khẩu (Quyền Quản trị viên)"
-                        : "Chỉ người được giao quyền mới có thể xem mật khẩu (Yêu cầu mã PIN)"
-                    }
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4 text-blue-600" />
-                    ) : (
-                      <div className="relative flex items-center justify-center">
-                        <Eye className="w-4 h-4" />
-                        {!isAuthorizedToViewPassword() && (
-                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full ring-2 ring-white" />
-                        )}
-                      </div>
-                    )}
-                  </button>
-                </div>
-
-                {/* Privacy & Security Explanation Banner */}
-                <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-[11px] text-slate-600 flex items-start gap-2.5">
-                  <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5 leading-relaxed">
-                    <p className="font-semibold text-slate-800">Mật khẩu luôn được ẩn để bảo mật</p>
-                    <p className="text-slate-500">
-                      Chỉ người được giao quyền (Ban Quản trị CLB / Giáo viên Cố vấn) mới được phép hiển thị mật khẩu bằng Mã PIN bảo mật.
-                    </p>
-                  </div>
+          {authMode === "student" && step !== "first_time_declaration" && (
+            <form onSubmit={handleStudentSubmit} className="space-y-4 animate-in fade-in duration-150">
+              
+              {/* Content Moderation Safety Notice */}
+              <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl text-xs text-blue-900 flex items-start gap-2.5">
+                <Clock className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <span className="font-bold">Đăng nhập tài khoản học sinh:</span> Học sinh tự nhập Gmail và Mật khẩu cá nhân để tham gia CLB. Mọi bài viết của học sinh sẽ ở chế độ <strong>Chờ duyệt (Pending Review)</strong> và chỉ hiển thị khi được Ban Quản Trị phê duyệt.
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setStep("account_chooser")}
-                  className="flex items-center justify-center gap-1.5 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs sm:text-sm transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Quay lại</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleContinueWithAccount(selectedAccount.email)}
-                  className="flex-1 py-3 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                >
-                  <span>Tiếp tục để dùng App</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* =========================================================================
-              STEP 3: CUSTOM EMAIL (Nhập địa chỉ Gmail mới)
-             ========================================================================= */}
-          {step === "custom_email" && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Địa chỉ Gmail của bạn <span className="text-red-500">*</span>
+              {/* Gmail Input (Empty for self-input) */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Địa chỉ Gmail học sinh <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="email"
                     required
-                    value={targetEmail}
-                    onChange={(e) => setTargetEmail(e.target.value)}
-                    placeholder="ví dụ: nguyenvana.8a@gmail.com"
-                    className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-3 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden"
+                    autoFocus
+                    value={studentEmail}
+                    onChange={(e) => setStudentEmail(e.target.value)}
+                    placeholder="Nhập địa chỉ Gmail của bạn (vd: nguyenvana.7a1@gmail.com)"
+                    className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-3 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden font-medium"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              {/* Password Input (Empty for self-input) */}
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-bold text-slate-700">
-                    Mật khẩu Gmail <span className="text-red-500">*</span>
+                    Mật khẩu tài khoản <span className="text-red-500">*</span>
                   </label>
                   <span className="text-[11px] text-slate-500 flex items-center gap-1 font-medium">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Bảo vệ & ẩn mật khẩu</span>
+                    <Lock className="w-3 h-3 text-slate-400" />
+                    <span>Mật khẩu ẩn an toàn</span>
                   </span>
                 </div>
 
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Nhập mật khẩu..."
-                    className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-10 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden transition-all font-medium"
+                    type={showStudentPassword ? "text" : "password"}
+                    required
+                    value={studentPassword}
+                    onChange={(e) => setStudentPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu tài khoản của bạn..."
+                    className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-10 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden font-medium"
                   />
                   <button
                     type="button"
-                    onClick={handleTogglePasswordVisibility}
-                    title={
-                      showPassword
-                        ? "Ẩn mật khẩu"
-                        : isAuthorizedToViewPassword()
-                        ? "Hiển thị mật khẩu (Quyền Quản trị viên)"
-                        : "Chỉ người được giao quyền mới có thể xem mật khẩu (Yêu cầu mã PIN)"
-                    }
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                    onClick={() => setShowStudentPassword(!showStudentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    title={showStudentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4 text-blue-600" />
-                    ) : (
-                      <div className="relative flex items-center justify-center">
-                        <Eye className="w-4 h-4" />
-                        {!isAuthorizedToViewPassword() && (
-                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full ring-2 ring-white" />
-                        )}
-                      </div>
-                    )}
+                    {showStudentPassword ? <EyeOff className="w-4 h-4 text-blue-600" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-
-                <p className="text-[11px] text-slate-500 flex items-center gap-1 pt-0.5">
-                  <Lock className="w-3 h-3 text-slate-400 shrink-0" />
-                  <span>Mật khẩu được che giấu. Chỉ Ban Quản trị được cấp quyền mới có thể hiển thị.</span>
-                </p>
               </div>
 
-              <div className="flex items-center gap-3 pt-3">
+              {/* Submit Button */}
+              <div className="pt-2">
                 <button
-                  type="button"
-                  onClick={() => setStep("account_chooser")}
-                  className="flex items-center justify-center gap-1.5 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs sm:text-sm transition-colors"
+                  type="submit"
+                  className="w-full py-3 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                 >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Quay lại</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleContinueWithAccount(targetEmail)}
-                  className="flex-1 py-3 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                >
-                  <span>Tiếp tục</span>
+                  <span>Tiếp Tục Đăng Nhập Thành Viên</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
-            </div>
+            </form>
           )}
 
           {/* =========================================================================
-              STEP 4: FIRST TIME DECLARATION (Bản khai báo Họ tên, Lớp, Chức vụ)
+              TAB 2: BAN QUẢN TRỊ & CỐ VẤN GIÁO VIÊN (CỔNG BẢO MẬT MASTER KEY)
+             ========================================================================= */}
+          {authMode === "admin" && step !== "first_time_declaration" && (
+            <form onSubmit={handleAdminSubmit} className="space-y-4 animate-in fade-in duration-150">
+              
+              {/* High Security Banner */}
+              <div className="p-4 bg-slate-900 text-white rounded-2xl border border-amber-400/40 space-y-2">
+                <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <span>Xác thực 2 Lớp: Email Ban Quản Trị + Khóa Master Key</span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Để đảm bảo tính bảo mật và quyền kiểm soát bài viết, tài khoản Quản trị viên (Thầy Huỳnh Xuân Hoàng) và Giáo viên Cố vấn không hiển thị sẵn công khai. Người dùng phải nhập đúng Gmail được phân quyền và Khóa Bảo Mật Quản Trị.
+                </p>
+              </div>
+
+              {/* Admin Email */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Gmail Ban Quản Trị / Cố Vấn <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="email"
+                    required
+                    value={adminEmail}
+                    onChange={(e) => {
+                      setAdminEmail(e.target.value);
+                      setAdminAuthError("");
+                    }}
+                    placeholder="ví dụ: bon2beaking2@gmail.com hoặc hoanghx@detham.edu.vn"
+                    className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-3 py-3 rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-hidden font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Admin Master Key (No more 2026 default) */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Mã Khóa Bảo Mật Quản Trị (Master Key) <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-amber-700 font-bold flex items-center gap-1">
+                    <Lock className="w-3 h-3 text-amber-600" />
+                    <span>Mật mã cấp cao</span>
+                  </span>
+                </div>
+
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type={showAdminKey ? "text" : "password"}
+                    required
+                    value={adminSecurityKey}
+                    onChange={(e) => {
+                      setAdminSecurityKey(e.target.value);
+                      setAdminAuthError("");
+                    }}
+                    placeholder="Nhập Khóa bảo mật do Thầy Huỳnh Xuân Hoàng cấp..."
+                    className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-10 py-3 rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-hidden font-mono tracking-wider font-semibold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminKey(!showAdminKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    title={showAdminKey ? "Ẩn khóa" : "Hiện khóa"}
+                  >
+                    {showAdminKey ? <EyeOff className="w-4 h-4 text-amber-600" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Error Alert */}
+              {adminAuthError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed font-medium">{adminAuthError}</span>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full py-3 px-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 hover:from-black hover:to-indigo-900 text-amber-300 border border-amber-400/50 rounded-xl font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <span>Xác Thực & Kích Hoạt Quyền Quản Trị</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* =========================================================================
+              STEP 3: FIRST TIME DECLARATION FOR STUDENTS (48 LỚP THEO DANH SÁCH MỚI)
              ========================================================================= */}
           {step === "first_time_declaration" && (
             <form onSubmit={handleCompleteFirstTimeDeclaration} className="space-y-4 animate-in fade-in duration-200">
-              {/* First-Time Welcome Banner */}
+              
               <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -831,8 +588,8 @@ export const AuthModal: React.FC = () => {
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs font-extrabold text-blue-950 flex items-center gap-1.5">
-                      <span>Đăng nhập lần đầu qua Google</span>
-                      <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.2 rounded-full font-bold">+500 Điểm</span>
+                      <span>Chào mừng Thành viên mới!</span>
+                      <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-bold">+500 Điểm</span>
                     </div>
                     <div className="text-[11px] text-blue-700 truncate font-mono">
                       {targetEmail}
@@ -845,56 +602,10 @@ export const AuthModal: React.FC = () => {
                 </span>
               </div>
 
-              {/* 1. Select Account Type: Học sinh hay Giáo viên */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  1. Bạn là: <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAccountType("student");
-                      setClassroom("Lớp 8A");
-                      setClubRole(CLUB_ROLE_PRESETS.student[0]);
-                      setClubDuties(CLUB_DUTIES_PRESETS.student[0]);
-                      setAvatar(AVATAR_PRESETS[0].url);
-                    }}
-                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border text-xs font-bold transition-all ${
-                      accountType === "student"
-                        ? "bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-100 shadow-xs"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <GraduationCap className="w-4 h-4" />
-                    <span>Học sinh</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAccountType("teacher");
-                      setTeacherPosition(TEACHER_POSITIONS[0]);
-                      setClubRole(CLUB_ROLE_PRESETS.teacher[0]);
-                      setClubDuties(CLUB_DUTIES_PRESETS.teacher[0]);
-                      setAvatar(AVATAR_PRESETS[3].url);
-                    }}
-                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border text-xs font-bold transition-all ${
-                      accountType === "teacher"
-                        ? "bg-indigo-50 border-indigo-500 text-indigo-700 ring-2 ring-indigo-100 shadow-xs"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <Briefcase className="w-4 h-4" />
-                    <span>Giáo viên / Cán bộ</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 2. Họ và tên đầy đủ */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  2. Họ và Tên đầy đủ <span className="text-red-500">*</span>
+              {/* 1. Họ và tên */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  1. Họ và Tên đầy đủ <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -903,199 +614,129 @@ export const AuthModal: React.FC = () => {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder={
-                      accountType === "student"
-                        ? "ví dụ: Nguyễn Minh Anh, Trần Gia Hưng..."
-                        : "ví dụ: Thầy Huỳnh Xuân Hoàng, Thầy Đặng Tiến Ninh..."
-                    }
+                    placeholder="ví dụ: Nguyễn Minh Anh, Lê Gia Hưng..."
                     className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden"
                   />
                 </div>
               </div>
 
-              {/* 3. Phân nhánh: LỚP (nếu là học sinh) vs CHỨC VỤ (nếu là giáo viên) */}
-              {accountType === "student" ? (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      3. Lớp học của bạn <span className="text-red-500">*</span>
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <select
-                        value={classroom}
-                        onChange={(e) => setClassroom(e.target.value)}
-                        className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden"
-                      >
-                        {CLASSROOM_OPTIONS.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                        <option value="other">Lớp khác / Khối khác</option>
-                      </select>
-
-                      {classroom === "other" && (
-                        <input
-                          type="text"
-                          required
-                          value={customClassroom}
-                          onChange={(e) => setCustomClassroom(e.target.value)}
-                          placeholder="Nhập tên lớp..."
-                          className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Club Role for Student */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Ban tham gia trong Câu lạc bộ <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={clubRole}
-                      onChange={(e) => setClubRole(e.target.value)}
-                      className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden"
-                    >
-                      {CLUB_ROLE_PRESETS.student.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ) : (
-                /* Teacher Section: CHỨC VỤ */
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      3. Chức vụ / Tổ chuyên môn đối với Giáo viên <span className="text-red-500">*</span>
-                    </label>
-                    <div className="space-y-2">
-                      <select
-                        value={teacherPosition}
-                        onChange={(e) => setTeacherPosition(e.target.value)}
-                        className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden font-semibold text-slate-800"
-                      >
-                        {TEACHER_POSITIONS.map((pos) => (
-                          <option key={pos} value={pos}>
-                            {pos}
-                          </option>
-                        ))}
-                        <option value="other">Chức vụ / Tổ bộ môn khác...</option>
-                      </select>
-
-                      {teacherPosition === "other" && (
-                        <input
-                          type="text"
-                          required
-                          value={customTeacherPosition}
-                          onChange={(e) => setCustomTeacherPosition(e.target.value)}
-                          placeholder="Nhập chức vụ hoặc tổ bộ môn..."
-                          className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Nhiệm vụ Cố vấn / Ban điều hành trong CLB
-                    </label>
-                    <select
-                      value={clubRole}
-                      onChange={(e) => setClubRole(e.target.value)}
-                      className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden"
-                    >
-                      {CLUB_ROLE_PRESETS.teacher.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* 4. Club Duties */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  4. Nhiệm vụ thực hiện trong CLB <span className="text-red-500">*</span>
+              {/* 2. Lớp học (Cập nhật 48 Lớp chuẩn theo danh sách) */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  2. Lớp học của bạn <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  rows={2}
-                  required
-                  value={clubDuties}
-                  onChange={(e) => setClubDuties(e.target.value)}
-                  placeholder="Mô tả tóm tắt nhiệm vụ của bạn..."
-                  className="w-full bg-slate-50 focus:bg-white text-xs p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden resize-none"
-                />
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {CLUB_DUTIES_PRESETS[accountType].map((duty, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setClubDuties(duty)}
-                      className="text-[10px] bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 px-2 py-0.5 rounded-md border border-slate-200 transition-colors"
-                    >
-                      + Gợi ý {idx + 1}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={classroom}
+                    onChange={(e) => setClassroom(e.target.value)}
+                    className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden font-medium"
+                  >
+                    <optgroup label="Khối 7A">
+                      {["7A1", "7A2", "7A3", "7A4", "7A5", "7A6"].map((c) => (
+                        <option key={c} value={`Lớp ${c}`}>
+                          Lớp {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Khối 9A">
+                      {["9A1", "9A2", "9A3", "9A4", "9A5", "9A6", "9A7"].map((c) => (
+                        <option key={c} value={`Lớp ${c}`}>
+                          Lớp {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Khối 6A">
+                      {["6A1", "6A2", "6A3", "6A4", "6A5", "6A6"].map((c) => (
+                        <option key={c} value={`Lớp ${c}`}>
+                          Lớp {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Khối 8A">
+                      {["8A1", "8A2", "8A3", "8A4", "8A5", "8A6", "8A7"].map((c) => (
+                        <option key={c} value={`Lớp ${c}`}>
+                          Lớp {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Khối 7B">
+                      {["7B1", "7B2", "7B3", "7B4", "7B5"].map((c) => (
+                        <option key={c} value={`Lớp ${c}`}>
+                          Lớp {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Khối 9B">
+                      {["9B1", "9B2", "9B3", "9B4", "9B5", "9B6"].map((c) => (
+                        <option key={c} value={`Lớp ${c}`}>
+                          Lớp {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Khối 6B">
+                      {["6B1", "6B2", "6B3", "6B4", "6B5", "6B6"].map((c) => (
+                        <option key={c} value={`Lớp ${c}`}>
+                          Lớp {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Khối 8B">
+                      {["8B1", "8B2", "8B3", "8B4", "8B5", "8B6"].map((c) => (
+                        <option key={c} value={`Lớp ${c}`}>
+                          Lớp {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <option value="other">Lớp khác / Khối khác</option>
+                  </select>
+
+                  {classroom === "other" && (
+                    <input
+                      type="text"
+                      required
+                      value={customClassroom}
+                      onChange={(e) => setCustomClassroom(e.target.value)}
+                      placeholder="Nhập tên lớp..."
+                      className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden font-medium"
+                    />
+                  )}
                 </div>
               </div>
 
-              {/* 5. Avatar Selection */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
+              {/* 3. Chức vụ & Ban trong CLB */}
+              <div className="space-y-1">
                 <label className="block text-xs font-bold text-slate-700">
-                  5. Chọn ảnh đại diện thành viên:
+                  3. Vai trò / Ban trong CLB Đại sứ số:
                 </label>
+                <select
+                  value={clubRole}
+                  onChange={(e) => setClubRole(e.target.value)}
+                  className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden"
+                >
+                  {CLUB_ROLE_PRESETS.student.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <div className="flex items-center gap-3">
-                  <img
-                    src={customAvatarUrl.trim() || avatar}
-                    alt="Avatar Preview"
-                    className="w-13 h-13 rounded-2xl object-cover ring-2 ring-blue-500/30 shadow-xs"
-                  />
-
-                  <div className="flex-1 space-y-1.5">
-                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-semibold cursor-pointer border border-blue-200 transition-colors">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Tải ảnh từ thiết bị</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                    </label>
-
-                    <input
-                      type="url"
-                      value={customAvatarUrl}
-                      onChange={(e) => setCustomAvatarUrl(e.target.value)}
-                      placeholder="Hoặc dán đường link ảnh URL..."
-                      className="w-full bg-slate-50 focus:bg-white text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-200 outline-hidden"
-                    />
-                  </div>
-                </div>
-
-                {/* Preset Avatar Icons */}
-                <div className="grid grid-cols-6 gap-2 pt-1">
-                  {AVATAR_PRESETS.map((p, idx) => (
+              {/* 4. Chọn Avatar đại diện */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  4. Chọn hình đại diện:
+                </label>
+                <div className="grid grid-cols-6 gap-2">
+                  {AVATAR_PRESETS.slice(0, 6).map((p, idx) => (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => {
-                        setAvatar(p.url);
-                        setCustomAvatarUrl("");
-                      }}
-                      className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all ${
-                        avatar === p.url && !customAvatarUrl
+                      onClick={() => setAvatar(p.url)}
+                      className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                        avatar === p.url
                           ? "border-blue-600 ring-2 ring-blue-200 scale-105"
-                          : "border-slate-200 hover:border-blue-300 opacity-80 hover:opacity-100"
+                          : "border-slate-200 hover:border-slate-400 opacity-80 hover:opacity-100"
                       }`}
-                      title={p.name}
                     >
                       <img src={p.url} alt={p.name} className="w-full h-full object-cover" />
                     </button>
@@ -1107,8 +748,8 @@ export const AuthModal: React.FC = () => {
               <div className="flex items-center gap-3 pt-3">
                 <button
                   type="button"
-                  onClick={() => setStep("account_chooser")}
-                  className="flex items-center justify-center gap-1.5 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs sm:text-sm transition-colors"
+                  onClick={() => setStep("login")}
+                  className="flex items-center justify-center gap-1.5 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   <span>Quay lại</span>
@@ -1123,73 +764,6 @@ export const AuthModal: React.FC = () => {
                 </button>
               </div>
             </form>
-          )}
-
-          {/* PIN Verification to Reveal Password */}
-          {showPinPrompt && (
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 rounded-3xl animate-in fade-in">
-              <div className="bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-slate-900">Bảo Vệ Quyền Riêng Tư Mật Khẩu</h4>
-                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                      Mật khẩu luôn được ẩn để bảo vệ tài khoản. Chỉ người được giao quyền (Ban Quản trị / Giáo viên Cố vấn) mới được phép hiển thị mật khẩu bằng Mã PIN bảo mật.
-                    </p>
-                  </div>
-                </div>
-
-                <form onSubmit={handleVerifyPinToViewPassword} className="space-y-3">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Mã PIN xác thực:</label>
-                    <div className="relative">
-                      <KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="password"
-                        autoFocus
-                        maxLength={20}
-                        value={pinUnlockInput}
-                        onChange={(e) => {
-                          setPinUnlockInput(e.target.value);
-                          setPinUnlockError("");
-                        }}
-                        placeholder="Nhập mã PIN bảo mật quản trị..."
-                        className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-hidden font-mono tracking-wider"
-                      />
-                    </div>
-                    {pinUnlockError && (
-                      <div className="flex items-center gap-1.5 text-xs text-red-600 font-medium mt-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>{pinUnlockError}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowPinPrompt(false);
-                        setPinUnlockInput("");
-                        setPinUnlockError("");
-                      }}
-                      className="flex-1 py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors"
-                    >
-                      Đóng & Giữ ẩn
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Mở xem mật khẩu</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
           )}
 
         </div>

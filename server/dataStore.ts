@@ -40,6 +40,7 @@ export interface AppServerStore {
   advisors: any[];
   counselingMessages: any[];
   userProfiles: Record<string, any>;
+  adminMasterKey: string;
   lastUpdated: string;
 }
 
@@ -60,6 +61,7 @@ function getInitialStore(): AppServerStore {
     advisors: [...CLUB_ADVISORY_BOARD],
     counselingMessages: [],
     userProfiles: {},
+    adminMasterKey: "DaisusoDeTham@BQT2026",
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -88,6 +90,7 @@ export function loadStore(): AppServerStore {
           advisors: Array.isArray(parsed.advisors) && parsed.advisors.length > 0 ? parsed.advisors : initial.advisors,
           counselingMessages: Array.isArray(parsed.counselingMessages) ? parsed.counselingMessages : initial.counselingMessages,
           userProfiles: parsed.userProfiles && typeof parsed.userProfiles === "object" ? parsed.userProfiles : initial.userProfiles,
+          adminMasterKey: typeof parsed.adminMasterKey === "string" && parsed.adminMasterKey.trim() ? parsed.adminMasterKey : initial.adminMasterKey,
           lastUpdated: parsed.lastUpdated || new Date().toISOString(),
         };
         return memoryStore!;

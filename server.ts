@@ -79,7 +79,6 @@ async function startServer() {
 
   // Helper to verify admin / authorized rights on server
   const verifyIsAdminOrAuthorized = (req: any, store: any) => {
-    const role = (req.headers["x-user-role"] as string) || req.body?.callerRole || req.query?.callerRole;
     const email = (
       (req.headers["x-user-email"] as string) ||
       req.body?.callerEmail ||
@@ -87,10 +86,7 @@ async function startServer() {
       ""
     ).toLowerCase().trim();
 
-    if (role === "super_admin" || role === "teacher") {
-      return true;
-    }
-
+    // Check if caller's email is actively granted admin or teacher role in permission table
     if (email && Array.isArray(store.emailPermissions)) {
       const perm = store.emailPermissions.find(
         (p: any) =>
@@ -102,8 +98,78 @@ async function startServer() {
       if (perm) return true;
     }
 
+    // Special root admin emails
+    if (email === "bon2beaking2@gmail.com" || email === "hoanghx@detham.edu.vn") {
+      return true;
+    }
+
     return false;
   };
+
+  // --- ADMIN SECURITY KEY MANAGEMENT ---
+  app.post("/api/admin/verify-key", (req, res) => {
+    try {
+      const { key, email } = req.body;
+      if (!key) {
+        return res.status(400).json({ success: false, error: "Vui lòng nhập Mã Khóa Bảo Mật!" });
+      }
+      const store = loadStore();
+      const currentKey = store.adminMasterKey || "DaisusoDeTham@BQT2026";
+      
+      const isKeyMatch = key.trim() === currentKey;
+      if (!isKeyMatch) {
+        return res.status(401).json({ success: false, error: "Mã Khóa Bảo Mật Quản Trị không chính xác!" });
+      }
+
+      let role = "teacher";
+      if (email) {
+        const cleanEmail = email.toLowerCase().trim();
+        const perm = store.emailPermissions.find(
+          (p: any) => p.email && p.email.toLowerCase() === cleanEmail && p.status === "active"
+        );
+        if (perm) {
+          role = perm.role;
+        } else if (cleanEmail === "bon2beaking2@gmail.com" || cleanEmail === "hoanghx@detham.edu.vn") {
+          role = "super_admin";
+        }
+      }
+
+      res.json({ success: true, message: "Xác thực Khóa Bảo Mật Quản Trị thành công", role });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message });
+    }
+  });
+
+  app.post("/api/admin/change-key", (req, res) => {
+    try {
+      const { currentKey, newKey, adminEmail } = req.body;
+      const store = loadStore();
+      const activeMasterKey = store.adminMasterKey || "DaisusoDeTham@BQT2026";
+
+      if (currentKey !== activeMasterKey) {
+        return res.status(401).json({ success: false, error: "Mã Khóa Bảo Mật hiện tại không chính xác!" });
+      }
+
+      if (!newKey || newKey.trim().length < 6) {
+        return res.status(400).json({ success: false, error: "Mã Khóa Bảo Mật mới phải có ít nhất 6 ký tự!" });
+      }
+
+      const cleanEmail = (adminEmail || "").toLowerCase().trim();
+      const isRoot = cleanEmail === "bon2beaking2@gmail.com" || cleanEmail === "hoanghx@detham.edu.vn";
+      const isPermittedSuperAdmin = store.emailPermissions.some(
+        (p: any) => p.email && p.email.toLowerCase() === cleanEmail && p.role === "super_admin" && p.status === "active"
+      );
+
+      if (!isRoot && !isPermittedSuperAdmin) {
+        return res.status(403).json({ success: false, error: "Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền đổi Khóa Bảo Mật!" });
+      }
+
+      saveStore({ adminMasterKey: newKey.trim() });
+      res.json({ success: true, message: "Đã đổi Mã Khóa Bảo Mật Quản Trị thành công!" });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message });
+    }
+  });
 
   // POSTS CRUD with Server-side Access Control
   app.post("/api/posts", (req, res) => {

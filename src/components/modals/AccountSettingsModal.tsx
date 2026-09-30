@@ -15,9 +15,11 @@ import {
   Camera,
   CheckCircle2,
   Phone,
+  Lock,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { UserRole } from "../../types";
+import { SCHOOL_CLASSROOMS } from "../../data/initialData";
 
 const AVATAR_PRESETS = [
   {
@@ -416,14 +418,82 @@ export const AccountSettingsModal: React.FC = () => {
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 {accountType === "student" ? "Lớp học" : "Tổ bộ môn / Phòng ban"} <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                required
-                value={classroom}
-                onChange={(e) => setClassroom(e.target.value)}
-                placeholder={accountType === "student" ? "Lớp 8A, 7B..." : "Tổ Khoa học Tự nhiên..."}
-                className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden"
-              />
+              {accountType === "student" ? (
+                <select
+                  value={classroom}
+                  onChange={(e) => setClassroom(e.target.value)}
+                  className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden font-medium"
+                >
+                  <optgroup label="Khối 7A">
+                    {["7A1", "7A2", "7A3", "7A4", "7A5", "7A6"].map((c) => (
+                      <option key={c} value={`Lớp ${c}`}>
+                        Lớp {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Khối 9A">
+                    {["9A1", "9A2", "9A3", "9A4", "9A5", "9A6", "9A7"].map((c) => (
+                      <option key={c} value={`Lớp ${c}`}>
+                        Lớp {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Khối 6A">
+                    {["6A1", "6A2", "6A3", "6A4", "6A5", "6A6"].map((c) => (
+                      <option key={c} value={`Lớp ${c}`}>
+                        Lớp {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Khối 8A">
+                    {["8A1", "8A2", "8A3", "8A4", "8A5", "8A6", "8A7"].map((c) => (
+                      <option key={c} value={`Lớp ${c}`}>
+                        Lớp {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Khối 7B">
+                    {["7B1", "7B2", "7B3", "7B4", "7B5"].map((c) => (
+                      <option key={c} value={`Lớp ${c}`}>
+                        Lớp {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Khối 9B">
+                    {["9B1", "9B2", "9B3", "9B4", "9B5", "9B6"].map((c) => (
+                      <option key={c} value={`Lớp ${c}`}>
+                        Lớp {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Khối 6B">
+                    {["6B1", "6B2", "6B3", "6B4", "6B5", "6B6"].map((c) => (
+                      <option key={c} value={`Lớp ${c}`}>
+                        Lớp {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Khối 8B">
+                    {["8B1", "8B2", "8B3", "8B4", "8B5", "8B6"].map((c) => (
+                      <option key={c} value={`Lớp ${c}`}>
+                        Lớp {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {!SCHOOL_CLASSROOMS.includes(classroom) && classroom && (
+                    <option value={classroom}>{classroom}</option>
+                  )}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  required
+                  value={classroom}
+                  onChange={(e) => setClassroom(e.target.value)}
+                  placeholder="Tổ Khoa học Tự nhiên, Ban Giám hiệu..."
+                  className="w-full bg-slate-50 focus:bg-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden font-medium"
+                />
+              )}
             </div>
 
             <div>
@@ -487,14 +557,31 @@ export const AccountSettingsModal: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-colors"
-            >
-              <LogOut className="w-4 h-4 text-red-600" />
-              <span>Đăng xuất tài khoản</span>
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-colors"
+              >
+                <LogOut className="w-4 h-4 text-red-600" />
+                <span>Đăng xuất</span>
+              </button>
+
+              {currentUser.role === "super_admin" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAccountSettingsModalOpen(false);
+                    setIsAdminPinModalOpen(true);
+                  }}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition-colors"
+                  title="Thay đổi Mã Khóa Bảo Mật Quản Trị"
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Đổi Khóa Quản Trị</span>
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button

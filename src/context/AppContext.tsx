@@ -44,83 +44,9 @@ import {
   CLUB_ADVISORY_BOARD,
 } from "../data/initialData";
 
-export const INITIAL_SAVED_GOOGLE_ACCOUNTS: SavedGoogleAccount[] = [
-  {
-    email: "bon2beaking2@gmail.com",
-    name: "Thầy Huỳnh Xuân Hoàng",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-    accountType: "teacher",
-    role: "super_admin",
-    roleTitle: "Chủ nhiệm CLB & Quản trị viên Tối cao",
-    classroom: "Ban Quản Trị CLB Đại Sứ Số",
-    clubRole: "Chủ nhiệm Câu lạc bộ",
-    clubDuties: "Quản trị tối cao toàn bộ hệ thống, phân quyền email, duyệt & xuất bản bài viết",
-    hasSavedPassword: false,
-    savedPassword: "",
-    lastLogin: "Vừa xong",
-    isRegistered: true,
-  },
-  {
-    email: "hoanghx@detham.edu.vn",
-    name: "Thầy Huỳnh Xuân Hoàng",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-    accountType: "teacher",
-    role: "super_admin",
-    roleTitle: "Chủ nhiệm CLB & Quản trị viên Cổng thông tin",
-    classroom: "Chủ nhiệm CLB Đại sứ số",
-    clubRole: "Chủ nhiệm Câu lạc bộ",
-    clubDuties: "Chỉ đạo toàn diện kế hoạch chuyển đổi số, phê duyệt bài viết và ban hành nội dung số",
-    hasSavedPassword: false,
-    savedPassword: "",
-    lastLogin: "Hôm nay",
-    isRegistered: true,
-  },
-  {
-    email: "ninhdt@detham.edu.vn",
-    name: "Thầy Đặng Tiến Ninh",
-    avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80",
-    accountType: "teacher",
-    role: "teacher",
-    roleTitle: "Cố vấn Kỹ thuật & Chuyển đổi số",
-    classroom: "Tổ Kỹ thuật & Chuyển đổi số",
-    clubRole: "Cố vấn Kỹ thuật & Hạ tầng Số",
-    clubDuties: "Quản trị kỹ thuật, giải pháp an toàn mạng, duyệt bài và hướng dẫn học sinh ứng dụng AI",
-    hasSavedPassword: false,
-    savedPassword: "",
-    lastLogin: "Hôm qua",
-    isRegistered: true,
-  },
-  {
-    email: "minhanh.8a@detham.edu.vn",
-    name: "Nguyễn Minh Anh",
-    avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80",
-    accountType: "student",
-    role: "ambassador",
-    roleTitle: "Đại sứ số Học đường",
-    classroom: "Lớp 8A",
-    clubRole: "Trưởng ban Truyền thông & Sáng tạo",
-    clubDuties: "Tuyên truyền kỹ năng số, thiết kế ấn phẩm và chia sẻ kinh nghiệm AI",
-    hasSavedPassword: false,
-    savedPassword: "",
-    lastLogin: "2 ngày trước",
-    isRegistered: true,
-  },
-  {
-    email: "tuankiet.7b@detham.edu.vn",
-    name: "Trần Tuấn Kiệt",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-    accountType: "student",
-    role: "student",
-    roleTitle: "Học sinh Thành viên CLB",
-    classroom: "Lớp 7B",
-    clubRole: "Học sinh Tham gia CLB",
-    clubDuties: "Tham gia các buổi sinh hoạt CLB, học tập kỹ năng số và làm bài tập thực hành",
-    hasSavedPassword: false,
-    savedPassword: "",
-    lastLogin: "3 ngày trước",
-    isRegistered: true,
-  },
-];
+// Saved accounts on device are empty by default for security.
+// Accounts only appear after an actual authorized login on this specific browser.
+export const INITIAL_SAVED_GOOGLE_ACCOUNTS: SavedGoogleAccount[] = [];
 
 export type NavTab =
   | "home"
@@ -227,7 +153,9 @@ interface AppContextType {
   setIsAuthModalOpen: (open: boolean) => void;
   isAdminPinModalOpen: boolean;
   setIsAdminPinModalOpen: (open: boolean) => void;
-  verifyAdminPin: (pin: string, role?: "super_admin" | "teacher") => boolean;
+  adminMasterKey: string;
+  changeAdminMasterKey: (currentKey: string, newKey: string) => Promise<{ success: boolean; message: string }>;
+  verifyAdminPin: (pin: string, role?: "super_admin" | "teacher", specificEmail?: string) => boolean;
   isAccountSettingsModalOpen: boolean;
   setIsAccountSettingsModalOpen: (open: boolean) => void;
   isEmailPermissionModalOpen: boolean;
@@ -235,8 +163,9 @@ interface AppContextType {
   savedGoogleAccounts: SavedGoogleAccount[];
   saveGoogleAccount: (account: SavedGoogleAccount) => void;
   removeSavedGoogleAccount: (email: string) => void;
+  clearAllSavedGoogleAccounts: () => void;
   checkUserRegistered: (email: string) => { isRegistered: boolean; profile?: Partial<UserProfile>; savedAccount?: SavedGoogleAccount };
-  loginWithGoogle: (customGoogleData?: Partial<UserProfile> & { savePassword?: boolean; password?: string }) => void;
+  loginWithGoogle: (customGoogleData?: Partial<UserProfile> & { savePassword?: boolean; password?: string; adminKey?: string }) => void;
   loginWithEmail: (email: string, password?: string, extraData?: Partial<UserProfile>) => boolean;
   logout: () => void;
   updateUserProfile: (data: Partial<UserProfile>) => void;
@@ -731,6 +660,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 return next;
               });
             }
+            if (typeof d.adminMasterKey === "string" && d.adminMasterKey.trim()) {
+              setAdminMasterKey(d.adminMasterKey.trim());
+              localStorage.setItem("daisu_admin_master_key", d.adminMasterKey.trim());
+            }
           }
         }
       } catch (err) {
@@ -820,35 +753,99 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAddPromptModalOpen, setIsAddPromptModalOpen] = useState(false);
   const [isAddAIToolModalOpen, setIsAddAIToolModalOpen] = useState(false);
 
-  // Verify Admin Passcode PIN
-  const verifyAdminPin = (pin: string, targetRole: "super_admin" | "teacher" = "super_admin"): boolean => {
-    const validPins = ["2026", "daisuso2026", "daisu2026", "admin2026"];
-    if (validPins.includes(pin.trim())) {
-      const mockU = MOCK_USERS[targetRole];
-      const adminEmail = targetRole === "super_admin" ? "bon2beaking2@gmail.com" : "ninhdt@detham.edu.vn";
-      const updatedUser: UserProfile = {
-        ...mockU,
-        isLoggedIn: true,
-        email: adminEmail,
-        loginProvider: "google",
-      };
-      setCurrentUser(updatedUser);
-      setCurrentRole(targetRole);
-      setIsAuthenticated(true);
-      localStorage.setItem("daisu_current_user", JSON.stringify(updatedUser));
-      localStorage.setItem("daisu_is_authenticated", JSON.stringify(true));
-      try {
-        confetti({
-          particleCount: 70,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
-      } catch {}
-      showToast(`🎉 Xác thực bảo mật thành công! Chào mừng ${mockU.name}`, "success", 50);
-      return true;
+  // Admin Master Security Key State (Configurable, eliminates hardcoded 2026 pin)
+  const [adminMasterKey, setAdminMasterKey] = useState<string>(() => {
+    return localStorage.getItem("daisu_admin_master_key") || "DaisusoDeTham@BQT2026";
+  });
+
+  const changeAdminMasterKey = async (
+    currentKey: string,
+    newKey: string
+  ): Promise<{ success: boolean; message: string }> => {
+    if (currentKey.trim() !== adminMasterKey) {
+      showToast("Mã Khóa Bảo Mật hiện tại không chính xác!", "error");
+      return { success: false, message: "Mã Khóa Bảo Mật hiện tại không chính xác!" };
     }
-    showToast("Mã PIN bảo mật Quản trị không chính xác!", "error");
-    return false;
+    if (!newKey || newKey.trim().length < 6) {
+      showToast("Mã Khóa Bảo Mật mới phải có ít nhất 6 ký tự!", "warning");
+      return { success: false, message: "Mã Khóa Bảo Mật mới phải có ít nhất 6 ký tự!" };
+    }
+
+    const cleanNewKey = newKey.trim();
+    setAdminMasterKey(cleanNewKey);
+    localStorage.setItem("daisu_admin_master_key", cleanNewKey);
+
+    try {
+      await fetch("/api/admin/change-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentKey: currentKey.trim(),
+          newKey: cleanNewKey,
+          adminEmail: currentUser.email || "bon2beaking2@gmail.com",
+        }),
+      });
+    } catch {}
+
+    showToast("🎉 Đã đổi Mã Khóa Bảo Mật Quản Trị thành công!", "success");
+    return { success: true, message: "Đã đổi Mã Khóa Bảo Mật Quản Trị thành công!" };
+  };
+
+  // Verify Admin Passcode / Security Key
+  const verifyAdminPin = (
+    pin: string,
+    targetRole: "super_admin" | "teacher" = "super_admin",
+    specificEmail?: string
+  ): boolean => {
+    if (pin.trim() !== adminMasterKey) {
+      showToast("Mã Khóa Bảo Mật Quản Trị không chính xác! Vui lòng thử lại.", "error");
+      return false;
+    }
+
+    // Determine target admin email
+    const emailToAuth = (specificEmail || currentUser.email || "").toLowerCase().trim();
+    const isTargetAdmin =
+      emailToAuth === "bon2beaking2@gmail.com" ||
+      emailToAuth === "hoanghx@detham.edu.vn" ||
+      emailPermissions.some(
+        (p) =>
+          p.email.toLowerCase() === emailToAuth &&
+          (p.role === targetRole || p.role === "super_admin") &&
+          p.status === "active"
+      );
+
+    const adminEmail = isTargetAdmin
+      ? emailToAuth
+      : targetRole === "super_admin"
+      ? "bon2beaking2@gmail.com"
+      : "dangtienninhak@gmail.com";
+
+    const matchedPerm = findPermissionByEmail(adminEmail);
+    const mockU = MOCK_USERS[targetRole];
+    const updatedUser: UserProfile = {
+      ...mockU,
+      name: matchedPerm?.name || mockU.name,
+      email: adminEmail,
+      role: targetRole,
+      roleTitle: matchedPerm?.roleTitle || mockU.roleTitle,
+      accountType: "teacher",
+      clubRole: matchedPerm?.clubRole || mockU.clubRole,
+      clubDuties: matchedPerm?.clubDuties || mockU.clubDuties,
+      isLoggedIn: true,
+      loginProvider: "google",
+    };
+
+    setCurrentUser(updatedUser);
+    setCurrentRole(targetRole);
+    setIsAuthenticated(true);
+    localStorage.setItem("daisu_current_user", JSON.stringify(updatedUser));
+    localStorage.setItem("daisu_is_authenticated", JSON.stringify(true));
+
+    try {
+      confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+    } catch {}
+    showToast(`🎉 Xác thực bảo mật thành công! Chào mừng ${updatedUser.name} [${updatedUser.roleTitle}]`, "success", 50);
+    return true;
   };
 
   // Sync role update with security enforcement
@@ -980,7 +977,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.map((acc: SavedGoogleAccount) => ({
+          // Security: Clean out any legacy default admin accounts from public display
+          const cleaned = parsed.filter(
+            (acc: any) =>
+              acc &&
+              acc.email &&
+              acc.email !== "bon2beaking2@gmail.com" &&
+              acc.email !== "hoanghx@detham.edu.vn" &&
+              acc.email !== "ninhdt@detham.edu.vn"
+          );
+          return cleaned.map((acc: SavedGoogleAccount) => ({
             ...acc,
             hasSavedPassword: false,
             savedPassword: "",
@@ -988,11 +994,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } catch {}
     }
-    return INITIAL_SAVED_GOOGLE_ACCOUNTS.map((acc) => ({
-      ...acc,
-      hasSavedPassword: false,
-      savedPassword: "",
-    }));
+    return [];
   });
 
   const [registeredProfiles, setRegisteredProfiles] = useState<Record<string, Partial<UserProfile>>>(() => {
@@ -1022,6 +1024,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return updated;
     });
     showToast(`Đã gỡ tài khoản ${email} khỏi danh sách đã lưu trên máy`, "info");
+  };
+
+  const clearAllSavedGoogleAccounts = () => {
+    setSavedGoogleAccounts([]);
+    localStorage.removeItem("daisu_saved_google_accounts");
+    showToast("Đã xóa toàn bộ tài khoản lưu trên thiết bị này để đảm bảo an toàn!", "info");
   };
 
   const checkUserRegistered = (email: string): { isRegistered: boolean; profile?: Partial<UserProfile>; savedAccount?: SavedGoogleAccount } => {
@@ -1077,28 +1085,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Auth Handlers with Email Permission Verification
-  const loginWithGoogle = (customData?: Partial<UserProfile> & { savePassword?: boolean; password?: string }) => {
+  const loginWithGoogle = (
+    customData?: Partial<UserProfile> & { savePassword?: boolean; password?: string; adminKey?: string }
+  ) => {
     const email = (customData?.email || "an.nguyen@gmail.com").toLowerCase().trim();
     const matchedPerm = findPermissionByEmail(email);
     const existingProfile = registeredProfiles[email];
 
-    let assignedRole: UserRole = "ambassador";
-    let assignedRoleTitle = "Đại sứ số Học đường";
-    let assignedClubRole = "Thành viên Ban Truyền thông & Sáng tạo";
-    let assignedClubDuties = "Tuyên truyền kỹ năng số, thiết kế ấn phẩm và chia sẻ kinh nghiệm AI";
+    // Check if user provided correct adminMasterKey for administrative elevation
+    const providedKey = (customData?.adminKey || customData?.password || "").trim();
+    const isMasterKeyValid = providedKey === adminMasterKey;
+
+    let assignedRole: UserRole = "student";
+    let assignedRoleTitle = "Học sinh Thành viên CLB";
+    let assignedClubRole = "Học sinh Tham gia CLB";
+    let assignedClubDuties = "Học tập kỹ năng số và tham gia hoạt động CLB";
     let assignedClassroom = customData?.classroom || existingProfile?.classroom || "Lớp 8A";
     let assignedAccountType: "student" | "teacher" = customData?.accountType || existingProfile?.accountType || "student";
 
     if (matchedPerm && matchedPerm.status === "active") {
-      // Recognized from official permission table
-      assignedRole = matchedPerm.role;
-      assignedRoleTitle = matchedPerm.roleTitle;
-      assignedClubRole = matchedPerm.clubRole || assignedRoleTitle;
-      assignedClubDuties = matchedPerm.clubDuties || assignedClubDuties;
-      assignedClassroom = matchedPerm.classroom || assignedClassroom;
-      assignedAccountType = matchedPerm.accountType || "student";
+      // If recognized from official permissions table:
+      if (matchedPerm.role === "super_admin" || matchedPerm.role === "teacher") {
+        if (isMasterKeyValid) {
+          // Full admin/teacher power granted ONLY when master key matches!
+          assignedRole = matchedPerm.role;
+          assignedRoleTitle = matchedPerm.roleTitle;
+          assignedClubRole = matchedPerm.clubRole || assignedRoleTitle;
+          assignedClubDuties = matchedPerm.clubDuties || assignedClubDuties;
+          assignedClassroom = matchedPerm.classroom || assignedClassroom;
+          assignedAccountType = "teacher";
+        } else {
+          // Email matches an admin/teacher, but Master Key was not entered or invalid
+          assignedRole = "student";
+          assignedRoleTitle = "Quan sát viên (Chưa xác thực Khóa Quản trị)";
+          assignedClubRole = matchedPerm.clubRole || "Thành viên CLB";
+          assignedClubDuties = "Chế độ quan sát, không có quyền duyệt hoặc xóa bài";
+          assignedAccountType = "teacher";
+        }
+      } else {
+        // ambassador or student role in permissions
+        assignedRole = matchedPerm.role;
+        assignedRoleTitle = matchedPerm.roleTitle;
+        assignedClubRole = matchedPerm.clubRole || assignedRoleTitle;
+        assignedClubDuties = matchedPerm.clubDuties || assignedClubDuties;
+        assignedClassroom = matchedPerm.classroom || assignedClassroom;
+        assignedAccountType = matchedPerm.accountType || "student";
+      }
     } else if (existingProfile && existingProfile.role) {
-      // If the existing profile claims super_admin or teacher, strictly verify against emailPermissions table!
       if (existingProfile.role === "super_admin" || existingProfile.role === "teacher") {
         const isOfficiallyPermitted = emailPermissions.some(
           (p) =>
@@ -1106,12 +1139,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             (p.role === "super_admin" || p.role === "teacher") &&
             p.status === "active"
         );
-        if (isOfficiallyPermitted) {
+        if (isOfficiallyPermitted && isMasterKeyValid) {
           assignedRole = existingProfile.role;
           assignedRoleTitle = existingProfile.roleTitle || "Ban Quản trị CLB";
           assignedAccountType = "teacher";
         } else {
-          // Demote to student / ambassador
           assignedRole = "student";
           assignedRoleTitle = "Học sinh Thành viên CLB";
           assignedAccountType = "student";
@@ -1125,8 +1157,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       assignedClubDuties = existingProfile.clubDuties || assignedClubDuties;
       assignedClassroom = existingProfile.classroom || assignedClassroom;
     } else {
-      // Any new or unlisted email is assigned regular student privileges by default.
-      // Administrative moderation rights are granted ONLY via emailPermissions or Admin PIN.
       assignedRole = "student";
       assignedRoleTitle = customData?.accountType === "teacher" ? "Giáo viên Quan sát (Chưa cấp quyền quản trị)" : "Học sinh Thành viên CLB";
       assignedAccountType = customData?.accountType || "student";
@@ -2922,12 +2952,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsAuthModalOpen,
         isAdminPinModalOpen,
         setIsAdminPinModalOpen,
+        adminMasterKey,
+        changeAdminMasterKey,
         verifyAdminPin,
         isAccountSettingsModalOpen,
         setIsAccountSettingsModalOpen,
         savedGoogleAccounts,
         saveGoogleAccount,
         removeSavedGoogleAccount,
+        clearAllSavedGoogleAccounts,
         checkUserRegistered,
         loginWithGoogle,
         loginWithEmail,

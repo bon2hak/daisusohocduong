@@ -13,6 +13,28 @@ import {
   EmailPermission,
 } from "../types";
 
+export const SCHOOL_CLASSROOMS: string[] = [
+  // Khối 7A
+  "Lớp 7A1", "Lớp 7A2", "Lớp 7A3", "Lớp 7A4", "Lớp 7A5", "Lớp 7A6",
+  // Khối 9A
+  "Lớp 9A1", "Lớp 9A2", "Lớp 9A3", "Lớp 9A4", "Lớp 9A5", "Lớp 9A6", "Lớp 9A7",
+
+  // Khối 6A
+  "Lớp 6A1", "Lớp 6A2", "Lớp 6A3", "Lớp 6A4", "Lớp 6A5", "Lớp 6A6",
+  // Khối 8A
+  "Lớp 8A1", "Lớp 8A2", "Lớp 8A3", "Lớp 8A4", "Lớp 8A5", "Lớp 8A6", "Lớp 8A7",
+
+  // Khối 7B
+  "Lớp 7B1", "Lớp 7B2", "Lớp 7B3", "Lớp 7B4", "Lớp 7B5",
+  // Khối 9B
+  "Lớp 9B1", "Lớp 9B2", "Lớp 9B3", "Lớp 9B4", "Lớp 9B5", "Lớp 9B6",
+
+  // Khối 6B
+  "Lớp 6B1", "Lớp 6B2", "Lớp 6B3", "Lớp 6B4", "Lớp 6B5", "Lớp 6B6",
+  // Khối 8B
+  "Lớp 8B1", "Lớp 8B2", "Lớp 8B3", "Lớp 8B4", "Lớp 8B5", "Lớp 8B6",
+];
+
 export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
   {
     id: "advisor_01",
@@ -343,7 +365,7 @@ export const INITIAL_EMAIL_PERMISSIONS: EmailPermission[] = [
     accountType: "student",
     clubRole: "Thành viên Ban Kỹ thuật & AI",
     clubDuties: "Khám phá công cụ AI mới, tham gia các buổi sinh hoạt CLB và nộp sản phẩm số",
-    classroom: "Lớp 7B",
+    classroom: "Lớp 7B1",
     grantedBy: "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
     grantedAt: "15/09/2026",
     status: "active",
@@ -435,7 +457,7 @@ export const MOCK_USERS: Record<string, UserProfile> = {
     accountType: "student",
     clubRole: "Trưởng ban Truyền thông & Sáng tạo Số",
     clubDuties: "Thiết kế ấn phẩm truyền thông Canva, dựng video ngắn và hướng dẫn học sinh lớp dưới",
-    classroom: "Lớp 8A",
+    classroom: "Lớp 8A1",
     avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80",
     schoolName: "Trường THCS Đề Thám",
     points: 950,
@@ -482,7 +504,7 @@ export const MOCK_USERS: Record<string, UserProfile> = {
     accountType: "student",
     clubRole: "Thành viên Ban Kỹ thuật & AI",
     clubDuties: "Khám phá công cụ AI mới, tham gia các buổi sinh hoạt CLB và nộp sản phẩm số",
-    classroom: "Lớp 7B",
+    classroom: "Lớp 7B1",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
     schoolName: "Trường THCS Đề Thám",
     points: 420,
@@ -1333,7 +1355,7 @@ export const INITIAL_STUDENT_WORKS: StudentWork[] = [
     type: "video",
     typeName: "Video Kỹ năng",
     authorName: "Trần Tuấn Kiệt",
-    classroom: "Lớp 7B",
+    classroom: "Lớp 7B1",
     authorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
     thumbnail: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=600&auto=format&fit=crop&q=80",
     description: "Video hoạt họa 2D minh họa tình huống chú mèo Tít bị dụ dỗ nạp tiền game và cách xử lý thông minh.",
@@ -1778,7 +1800,7 @@ export const INITIAL_LEADERBOARD: LeaderboardEntry[] = [
     id: "lb_05",
     rank: 5,
     name: "Phạm Hải Đăng",
-    classroom: "Lớp 8D",
+    classroom: "Lớp 8A2",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
     points: 580,
     articles: 5,
@@ -1791,7 +1813,7 @@ export const INITIAL_LEADERBOARD: LeaderboardEntry[] = [
     id: "lb_06",
     rank: 6,
     name: "Trần Tuấn Kiệt",
-    classroom: "Lớp 7B",
+    classroom: "Lớp 7B1",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
     points: 420,
     articles: 3,

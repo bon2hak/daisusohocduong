@@ -149,7 +149,7 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={() => setIsAdminPinModalOpen(true)}
                   className="flex items-center gap-1 bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold px-2 py-1 rounded-md text-xs transition-all shadow-xs active:scale-95"
-                  title="Xác thực quyền Quản trị viên (Ban Quản trị CLB) bằng Mã PIN bảo mật"
+                  title="Xác thực quyền Quản trị viên bằng Khóa Bảo Mật Quản Trị"
                 >
                   <Lock className="w-3 h-3" />
                   <span>Mở Quyền Quản Trị</span>
