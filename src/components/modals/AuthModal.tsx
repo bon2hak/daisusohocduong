@@ -15,6 +15,8 @@ import {
   AlertCircle,
   Clock,
   Layers,
+  Info,
+  CheckCircle2,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { UserRole } from "../../types";
@@ -98,13 +100,14 @@ export const AuthModal: React.FC = () => {
     openAdminPinModal,
     checkUserRegistered,
     loginWithGoogle,
+    continueAsGuest,
     emailPermissions,
     adminMasterKey,
     showToast,
   } = useApp();
 
-  // Mode: "student" (Học sinh) | "admin" (Ban Quản Trị & Cố Vấn)
-  const [authMode, setAuthMode] = useState<"student" | "admin">("student");
+  // Mode: "student" (Học sinh) | "admin" (Ban Quản Trị & Cố Vấn) | "guest" (Chỉ xem tin tức)
+  const [authMode, setAuthMode] = useState<"student" | "admin" | "guest">("student");
 
   // Step: "login" | "first_time_declaration"
   const [step, setStep] = useState<"login" | "first_time_declaration">("login");
@@ -316,10 +319,11 @@ export const AuthModal: React.FC = () => {
         {/* Top Header */}
         <div className="bg-white px-6 sm:px-8 pt-6 pb-4 border-b border-slate-100 relative">
           <button
-            onClick={() => setIsAuthModalOpen(false)}
-            className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
-            title="Đóng cửa sổ"
+            onClick={() => continueAsGuest()}
+            className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors flex items-center gap-1 text-xs"
+            title="Đóng & Xem tin tức với tư cách Khách"
           >
+            <span className="hidden sm:inline font-medium text-slate-500 text-[11px]">Xem tin (Khách)</span>
             <X className="w-5 h-5" />
           </button>
 
@@ -357,45 +361,72 @@ export const AuthModal: React.FC = () => {
                   ? "Bản Khai Báo Thông Tin Thành Viên"
                   : authMode === "student"
                   ? "Cổng Đăng Nhập Học Sinh & Thành Viên"
-                  : "Cổng Bảo Mật Ban Quản Trị & Cố Vấn"}
+                  : authMode === "admin"
+                  ? "Cổng Bảo Mật Ban Quản Trị & Cố Vấn"
+                  : "Chế Độ Khách (Không Cần Đăng Nhập)"}
               </h2>
             </div>
           </div>
 
           {/* Mode Switch Tabs (Only when not in first_time_declaration) */}
           {step !== "first_time_declaration" && (
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode("student");
-                  setStep("login");
-                }}
-                className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                  authMode === "student"
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                <GraduationCap className="w-4 h-4" />
-                <span>1. Học Sinh Tự Nhập Tài Khoản</span>
-              </button>
+            <div className="space-y-2 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode("student");
+                    setStep("login");
+                  }}
+                  className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                    authMode === "student"
+                      ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <GraduationCap className="w-4 h-4 shrink-0" />
+                  <span className="truncate">1. Học Sinh Đăng Nhập</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode("admin");
-                  setAdminAuthError("");
-                }}
-                className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                  authMode === "admin"
-                    ? "bg-slate-900 text-amber-300 shadow-sm shadow-slate-900/40 border border-amber-400/40"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
-                <span>2. Ban Quản Trị & Cố Vấn</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode("admin");
+                    setAdminAuthError("");
+                  }}
+                  className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                    authMode === "admin"
+                      ? "bg-slate-900 text-amber-300 shadow-sm shadow-slate-900/40 border border-amber-400/40"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="truncate">2. Ban Quản Trị & Cố Vấn</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode("guest");
+                  }}
+                  className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                    authMode === "guest"
+                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-500/30"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200"
+                  }`}
+                >
+                  <Eye className="w-4 h-4 shrink-0 text-inherit" />
+                  <span className="truncate">3. Xem Tin (Khách)</span>
+                </button>
+              </div>
+
+              {/* Phân quyền Notice Banner */}
+              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-2 text-[11px] text-slate-700 leading-relaxed">
+                <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-slate-900">Quy định truy cập:</strong> Nếu không đăng nhập thì <strong>chỉ xem tin tức</strong>, không có quyền đăng bài hoặc duyệt bài. Đăng nhập tài khoản để mở đầy đủ quyền hạn!
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -590,6 +621,109 @@ export const AuthModal: React.FC = () => {
           )}
 
           {/* =========================================================================
+              TAB 3: CHẾ ĐỘ KHÁCH (CHỈ XEM TIN TỨC - KHÔNG CÓ QUYỀN ĐĂNG HOẶC DUYỆT BÀI)
+             ========================================================================= */}
+          {authMode === "guest" && step !== "first_time_declaration" && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="p-5 bg-gradient-to-br from-emerald-50 via-teal-50 to-sky-50 border border-emerald-200 rounded-2xl text-center space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-md">
+                  <Eye className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-emerald-950">
+                    Chế Độ Khách (Không Cần Đăng Nhập)
+                  </h3>
+                  <p className="text-xs text-emerald-800 max-w-md mx-auto mt-1 leading-relaxed">
+                    Bạn có thể tự do đọc và xem toàn bộ bài viết học đường, cẩm nang AI, tài liệu và video kỹ năng số mà không cần đăng nhập.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => continueAsGuest()}
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 mx-auto cursor-pointer"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>▶️ Tiếp Tục Vào Xem Tin Tức Ngay</span>
+                </button>
+              </div>
+
+              {/* Permission Matrix for Guest */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {/* Permitted */}
+                <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2">
+                  <div className="font-bold text-emerald-900 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Quyền được phép (Khách):</span>
+                  </div>
+                  <ul className="space-y-1 text-[11px] text-emerald-800 pl-1">
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-emerald-600 font-bold">✓</span>
+                      <span>Đọc toàn bộ tin tức, diễn đàn học sinh</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-emerald-600 font-bold">✓</span>
+                      <span>Tra cứu tài liệu, cẩm nang AI và video</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-emerald-600 font-bold">✓</span>
+                      <span>Xem góc trưng bày sản phẩm & vinh danh</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Restricted */}
+                <div className="p-3.5 bg-rose-50/60 border border-rose-200 rounded-xl space-y-2">
+                  <div className="font-bold text-rose-900 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>Giới hạn (Cần đăng nhập):</span>
+                  </div>
+                  <ul className="space-y-1 text-[11px] text-rose-800 pl-1">
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-rose-600 font-bold">✕</span>
+                      <span><strong>Không có quyền đăng bài:</strong> Cần đăng nhập để chia sẻ bài viết mới</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-rose-600 font-bold">✕</span>
+                      <span><strong>Không có quyền duyệt bài:</strong> Chỉ Ban Quản trị mới được duyệt</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-rose-600 font-bold">✕</span>
+                      <span><strong>Không có quyền nộp bài:</strong> Cần đăng nhập để tích điểm thi đua</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Quick switch CTA */}
+              <div className="p-3 bg-slate-100 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <span className="text-slate-600 text-[11px]">Bạn muốn viết bài hoặc duyệt bài ngay bây giờ?</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode("student");
+                      setStep("login");
+                    }}
+                    className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] transition-colors"
+                  >
+                    Đăng nhập Học sinh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode("admin");
+                    }}
+                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-300 rounded-lg font-bold text-[11px] transition-colors"
+                  >
+                    Cổng Ban Quản trị
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================================
               STEP 3: FIRST TIME DECLARATION FOR STUDENTS (48 LỚP THEO DANH SÁCH MỚI)
              ========================================================================= */}
           {step === "first_time_declaration" && (
@@ -778,6 +912,24 @@ export const AuthModal: React.FC = () => {
                 </button>
               </div>
             </form>
+          )}
+
+          {/* Option: Continue as Guest (View-only mode without login) */}
+          {step !== "first_time_declaration" && authMode !== "guest" && (
+            <div className="pt-4 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => continueAsGuest()}
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-slate-100 to-emerald-50 hover:from-slate-200 hover:to-emerald-100 active:scale-98 text-slate-900 font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 border border-slate-300 shadow-2xs group"
+              >
+                <Eye className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+                <span>Không muốn đăng nhập — Tiếp tục xem tin tức (Chế độ Khách)</span>
+              </button>
+              <div className="text-[11px] text-slate-500 text-center mt-2 flex items-center justify-center gap-1.5 leading-relaxed">
+                <span>💡</span>
+                <span>Chế độ Khách chỉ được xem tin tức, <strong>không có quyền đăng bài</strong> hoặc <strong>duyệt bài</strong>.</span>
+              </div>
+            </div>
           )}
 
         </div>

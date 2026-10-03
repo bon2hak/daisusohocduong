@@ -24,6 +24,7 @@ export const StudentCornerView: React.FC = () => {
     deleteStudentWork,
     setEditingWork,
     setIsSubmitWorkModalOpen,
+    setIsAuthModalOpen,
     setSelectedWorkForView,
     currentUser,
     currentRole,
@@ -67,7 +68,14 @@ export const StudentCornerView: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setIsSubmitWorkModalOpen(true)}
+          onClick={() => {
+            if (currentRole === "guest" || !currentUser.isLoggedIn) {
+              showToast("Bạn đang ở chế độ Khách (Chỉ xem tin tức). Vui lòng đăng nhập để nộp sản phẩm số!", "warning");
+              setIsAuthModalOpen(true);
+              return;
+            }
+            setIsSubmitWorkModalOpen(true);
+          }}
           className="px-5 py-3 bg-white hover:bg-amber-50 text-amber-900 text-xs sm:text-sm font-bold rounded-2xl shadow-md transition-transform hover:scale-105 active:scale-95 flex items-center gap-2 shrink-0"
         >
           <PlusCircle className="w-4 h-4 text-amber-600" />

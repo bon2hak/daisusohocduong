@@ -1,4 +1,4 @@
-export type UserRole = "super_admin" | "teacher" | "ambassador" | "student";
+export type UserRole = "super_admin" | "teacher" | "ambassador" | "student" | "guest";
 
 export interface UserProfile {
   id: string;
@@ -7,7 +7,7 @@ export interface UserProfile {
   role: UserRole;
   roleTitle: string;
   title?: string;
-  accountType?: "student" | "teacher"; // Học sinh hay Giáo viên
+  accountType?: "student" | "teacher" | "guest"; // Học sinh, Giáo viên hoặc Khách xem tin
   clubRole?: string; // Chức vụ trong Câu lạc bộ (Chủ nhiệm, Phó chủ nhiệm, Trưởng ban, Thành viên...)
   clubDuties?: string; // Nhiệm vụ trong CLB (Quản trị, Truyền thông, AI, Thiết kế...)
   classroom?: string; // Lớp hoặc Tổ chuyên môn

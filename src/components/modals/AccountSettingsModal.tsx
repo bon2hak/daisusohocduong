@@ -105,7 +105,9 @@ export const AccountSettingsModal: React.FC = () => {
   const [name, setName] = useState(currentUser.name);
   const [email, setEmail] = useState(currentUser.email || "");
   const [accountType, setAccountType] = useState<"student" | "teacher">(
-    currentUser.accountType || (currentUser.role === "teacher" || currentUser.role === "super_admin" ? "teacher" : "student")
+    currentUser.accountType === "teacher" || currentUser.role === "teacher" || currentUser.role === "super_admin"
+      ? "teacher"
+      : "student"
   );
   const [classroom, setClassroom] = useState(currentUser.classroom || "Lớp 8A");
   const [clubRole, setClubRole] = useState(
@@ -122,9 +124,12 @@ export const AccountSettingsModal: React.FC = () => {
   useEffect(() => {
     setName(currentUser.name);
     setEmail(currentUser.email || "");
-    const accType =
-      currentUser.accountType ||
-      (currentUser.role === "teacher" || currentUser.role === "super_admin" ? "teacher" : "student");
+    const accType: "student" | "teacher" =
+      currentUser.accountType === "teacher" ||
+      currentUser.role === "teacher" ||
+      currentUser.role === "super_admin"
+        ? "teacher"
+        : "student";
     setAccountType(accType);
     setClassroom(currentUser.classroom || (accType === "teacher" ? "Tổ Kỹ thuật & Công nghệ" : "Lớp 8A"));
     setClubRole(

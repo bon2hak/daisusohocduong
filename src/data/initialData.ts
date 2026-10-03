@@ -526,7 +526,31 @@ export const MOCK_USERS: Record<string, UserProfile> = {
       },
     ],
   },
+  guest: {
+    id: "user_guest",
+    name: "Khách Xem Tin",
+    email: "",
+    role: "guest",
+    roleTitle: "Khách truy cập (Chỉ xem tin)",
+    accountType: "guest",
+    clubRole: "Độc giả / Khách vãng lai",
+    clubDuties: "Xem tin tức và tìm hiểu hoạt động CLB",
+    classroom: "Khách trường học",
+    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+    schoolName: "Trường THCS Đề Thám",
+    points: 0,
+    badges: [],
+    bio: "Đang truy cập ở chế độ Khách xem tin tức. Đăng nhập để tham gia đăng bài và duyệt bài.",
+    articlesCount: 0,
+    videosCount: 0,
+    activitiesCount: 0,
+    certificatesCount: 0,
+    isLoggedIn: false,
+    loginProvider: "demo",
+  },
 };
+
+export const GUEST_USER: UserProfile = MOCK_USERS.guest;
 
 export const INITIAL_POSTS: Post[] = [
   {

@@ -29,6 +29,7 @@ import {
   Users,
   ArrowRight,
   Key,
+  Eye,
 } from "lucide-react";
 import { useApp, NavTab } from "../context/AppContext";
 import { UserRole } from "../types";
@@ -54,6 +55,7 @@ export const Navbar: React.FC = () => {
     setIsAccountSettingsModalOpen,
     setIsEmailPermissionModalOpen,
     logout,
+    showToast,
   } = useApp();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -120,7 +122,7 @@ export const Navbar: React.FC = () => {
                   d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"
                 />
               </svg>
-              <span>{currentUser.isLoggedIn ? "Đổi tài khoản" : "Đăng nhập Google"}</span>
+              <span>{currentUser.isLoggedIn ? "Đổi tài khoản" : "Đăng nhập Google / CLB"}</span>
             </button>
 
             {/* Authenticated Role Badge & Security Status */}
@@ -140,10 +142,20 @@ export const Navbar: React.FC = () => {
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>🔵 Đại sứ số: {currentUser.name}</span>
                 </div>
-              ) : (
+              ) : currentRole === "student" && currentUser.isLoggedIn ? (
                 <div className="flex items-center gap-1 bg-emerald-700/90 text-white px-2.5 py-1 rounded-md text-xs font-semibold border border-emerald-500/60">
                   <span>🟢 Học sinh: {currentUser.name}</span>
                 </div>
+              ) : (
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded-md text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+                  title="Chế độ Khách: Chỉ xem tin tức. Bấm để đăng nhập nếu muốn đăng bài hoặc duyệt bài!"
+                >
+                  <Eye className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Chế độ Khách (Chỉ xem tin)</span>
+                  <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-medium ml-0.5">Đăng nhập</span>
+                </button>
               )}
 
               {/* Admin Verification CTA if not Super Admin */}
@@ -265,7 +277,14 @@ export const Navbar: React.FC = () => {
             {/* Create Post / Submit Work CTA */}
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setIsCreatePostModalOpen(true)}
+                onClick={() => {
+                  if (currentRole === "guest" || !currentUser.isLoggedIn) {
+                    showToast("Bạn đang ở chế độ Khách (Chỉ xem tin). Vui lòng đăng nhập để đăng bài viết!", "info");
+                    setIsAuthModalOpen(true);
+                    return;
+                  }
+                  setIsCreatePostModalOpen(true);
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
@@ -274,7 +293,14 @@ export const Navbar: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setIsSubmitWorkModalOpen(true)}
+                onClick={() => {
+                  if (currentRole === "guest" || !currentUser.isLoggedIn) {
+                    showToast("Bạn đang ở chế độ Khách (Chỉ xem tin). Vui lòng đăng nhập để nộp sản phẩm số!", "info");
+                    setIsAuthModalOpen(true);
+                    return;
+                  }
+                  setIsSubmitWorkModalOpen(true);
+                }}
                 className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
               >
                 <Sparkles className="w-3.5 h-3.5 text-blue-600" />
@@ -536,6 +562,12 @@ export const Navbar: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => {
+                  if (currentRole === "guest" || !currentUser.isLoggedIn) {
+                    showToast("Bạn đang ở chế độ Khách (Chỉ xem tin). Vui lòng đăng nhập để nộp sản phẩm số!", "warning");
+                    setIsAuthModalOpen(true);
+                    setIsMobileMenuOpen(false);
+                    return;
+                  }
                   setIsSubmitWorkModalOpen(true);
                   setIsMobileMenuOpen(false);
                 }}

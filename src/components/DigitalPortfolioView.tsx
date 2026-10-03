@@ -25,6 +25,7 @@ import { useApp } from "../context/AppContext";
 export const DigitalPortfolioView: React.FC = () => {
   const {
     currentUser,
+    currentRole,
     posts,
     studentWorks,
     completedQuizzes,
@@ -32,6 +33,7 @@ export const DigitalPortfolioView: React.FC = () => {
     setIsSubmitWorkModalOpen,
     setIsAccountSettingsModalOpen,
     setIsAuthModalOpen,
+    showToast,
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<"posts" | "works" | "badges">("posts");
@@ -261,7 +263,14 @@ export const DigitalPortfolioView: React.FC = () => {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Danh sách bài chia sẻ của bạn</h3>
             <button
-              onClick={() => setIsCreatePostModalOpen(true)}
+              onClick={() => {
+                if (currentRole === "guest" || !currentUser.isLoggedIn) {
+                  showToast("Bạn đang ở chế độ Khách (Chỉ xem tin). Vui lòng đăng nhập để viết bài!", "warning");
+                  setIsAuthModalOpen(true);
+                  return;
+                }
+                setIsCreatePostModalOpen(true);
+              }}
               className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5"
             >
               <PlusCircle className="w-3.5 h-3.5" />
@@ -324,7 +333,14 @@ export const DigitalPortfolioView: React.FC = () => {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Sản phẩm số đã gửi dự thi</h3>
             <button
-              onClick={() => setIsSubmitWorkModalOpen(true)}
+              onClick={() => {
+                if (currentRole === "guest" || !currentUser.isLoggedIn) {
+                  showToast("Bạn đang ở chế độ Khách (Chỉ xem tin). Vui lòng đăng nhập để nộp sản phẩm số!", "warning");
+                  setIsAuthModalOpen(true);
+                  return;
+                }
+                setIsSubmitWorkModalOpen(true);
+              }}
               className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5"
             >
               <PlusCircle className="w-3.5 h-3.5" />

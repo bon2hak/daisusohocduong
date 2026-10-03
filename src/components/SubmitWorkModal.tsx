@@ -4,8 +4,15 @@ import { useApp } from "../context/AppContext";
 import { StudentWorkType } from "../types";
 
 export const SubmitWorkModal: React.FC = () => {
-  const { isSubmitWorkModalOpen, setIsSubmitWorkModalOpen, submitStudentWork, currentUser, showToast } =
-    useApp();
+  const {
+    isSubmitWorkModalOpen,
+    setIsSubmitWorkModalOpen,
+    setIsAuthModalOpen,
+    submitStudentWork,
+    currentUser,
+    currentRole,
+    showToast,
+  } = useApp();
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState<StudentWorkType>("poster");
@@ -77,8 +84,43 @@ export const SubmitWorkModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        {/* Form Body or Guest Notice */}
+        {currentRole === "guest" || !currentUser.isLoggedIn ? (
+          <div className="p-8 text-center space-y-5">
+            <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-xs text-2xl">
+              🔒
+            </div>
+            <div className="space-y-2 max-w-md mx-auto">
+              <h4 className="text-base font-bold text-slate-900">
+                Chế độ Khách — Không có quyền nộp bài dự thi
+              </h4>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Bạn đang xem trang ở <strong>Chế độ Khách (Chỉ xem tin)</strong>. Vui lòng đăng nhập tài khoản học sinh để nộp sản phẩm Poster, Video, Tranh AI và tích điểm đổi quà!
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSubmitWorkModalOpen(false);
+                  setIsAuthModalOpen(true);
+                }}
+                className="w-full sm:w-auto px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-2"
+              >
+                <span>Đăng nhập để nộp bài</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSubmitWorkModalOpen(false)}
+                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+              >
+                <span>Trở lại xem tin tức</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
           <div>
             <label className="block font-bold text-slate-700 mb-1">
               Tên tác phẩm / Sản phẩm số <span className="text-red-500">*</span>
@@ -165,6 +207,7 @@ export const SubmitWorkModal: React.FC = () => {
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

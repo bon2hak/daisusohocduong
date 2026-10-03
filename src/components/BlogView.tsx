@@ -41,6 +41,7 @@ export const BlogView: React.FC = () => {
     approvePost,
     setEditingPost,
     setIsCreatePostModalOpen,
+    setIsAuthModalOpen,
     currentRole,
     currentUser,
     showToast,
@@ -124,13 +125,38 @@ export const BlogView: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setIsCreatePostModalOpen(true)}
+          onClick={() => {
+            if (currentRole === "guest" || !currentUser.isLoggedIn) {
+              showToast("Bạn đang ở chế độ Khách (Chỉ xem tin). Vui lòng đăng nhập để viết và đăng bài!", "warning");
+              setIsAuthModalOpen(true);
+              return;
+            }
+            setIsCreatePostModalOpen(true);
+          }}
           className="px-5 py-3 bg-white hover:bg-slate-50 text-blue-800 text-xs sm:text-sm font-bold rounded-2xl shadow-md transition-transform hover:scale-105 active:scale-95 flex items-center gap-2 shrink-0"
         >
           <PlusCircle className="w-4 h-4 text-blue-600" />
           <span>Viết bài chia sẻ mới</span>
         </button>
       </div>
+
+      {/* Guest Mode Informational Banner */}
+      {(currentRole === "guest" || !currentUser.isLoggedIn) && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">👀</span>
+            <div className="leading-relaxed">
+              <span className="font-bold">Bạn đang xem trang ở Chế độ Khách (Chỉ xem tin tức):</span> Bạn được tự do đọc và xem mọi bài viết, kỹ năng số và video. Để <strong>đăng bài viết</strong> hoặc <strong>duyệt bài viết</strong>, vui lòng đăng nhập tài khoản.
+            </div>
+          </div>
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs whitespace-nowrap shadow-xs transition-colors shrink-0"
+          >
+            Đăng nhập ngay
+          </button>
+        </div>
+      )}
 
       {/* Category Pills Slider */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">

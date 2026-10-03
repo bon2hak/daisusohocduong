@@ -19,6 +19,7 @@ export const CreatePostModal: React.FC = () => {
   const {
     isCreatePostModalOpen,
     setIsCreatePostModalOpen,
+    setIsAuthModalOpen,
     createPost,
     currentRole,
     currentUser,
@@ -84,6 +85,13 @@ export const CreatePostModal: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUser.role === "guest" || !currentUser.isLoggedIn) {
+      showToast("Bạn đang ở chế độ Khách (Chỉ xem tin). Vui lòng đăng nhập để đăng bài viết!", "warning");
+      setIsCreatePostModalOpen(false);
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     if (!title.trim() || !content.trim()) {
       showToast("Vui lòng điền tiêu đề và nội dung bài viết.", "warning");
       return;
@@ -153,8 +161,43 @@ export const CreatePostModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
+        {/* Form Body or Guest Notice */}
+        {currentUser.role === "guest" || !currentUser.isLoggedIn ? (
+          <div className="p-8 text-center space-y-5">
+            <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-xs text-2xl">
+              🔒
+            </div>
+            <div className="space-y-2 max-w-md mx-auto">
+              <h4 className="text-base font-bold text-slate-900">
+                Chế độ Khách — Không có quyền đăng bài
+              </h4>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Bạn đang xem trang với tư cách Khách. Bạn có thể tự do đọc toàn bộ tin tức và tài liệu, nhưng <strong>cần đăng nhập</strong> để viết bài, nộp sản phẩm số và tương tác cùng CLB Đại sứ số.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCreatePostModalOpen(false);
+                  setIsAuthModalOpen(true);
+                }}
+                className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2"
+              >
+                <span>Đăng nhập để đăng bài</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCreatePostModalOpen(false)}
+                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+              >
+                <span>Trở lại xem tin tức</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
           {/* Post approval notice */}
           <div className={`p-3 rounded-xl border flex items-start gap-2 text-xs ${
             currentRole === "super_admin" || currentRole === "teacher"
@@ -355,6 +398,7 @@ export const CreatePostModal: React.FC = () => {
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

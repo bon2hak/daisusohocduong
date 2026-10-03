@@ -42,6 +42,7 @@ import {
   INITIAL_AI_TOOLS,
   INITIAL_EMAIL_PERMISSIONS,
   CLUB_ADVISORY_BOARD,
+  GUEST_USER,
 } from "../data/initialData";
 
 // Saved accounts on device are empty by default for security.
@@ -170,6 +171,7 @@ interface AppContextType {
   checkUserRegistered: (email: string) => { isRegistered: boolean; profile?: Partial<UserProfile>; savedAccount?: SavedGoogleAccount };
   loginWithGoogle: (customGoogleData?: Partial<UserProfile> & { savePassword?: boolean; password?: string; adminKey?: string }) => void;
   loginWithEmail: (email: string, password?: string, extraData?: Partial<UserProfile>) => boolean;
+  continueAsGuest: () => void;
   logout: () => void;
   updateUserProfile: (data: Partial<UserProfile>) => void;
 
@@ -274,17 +276,25 @@ export const getPostSortTime = (p: Post): number => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem("daisu_current_user");
-    return saved ? JSON.parse(saved) : MOCK_USERS.student;
+    const isAuth = localStorage.getItem("daisu_is_authenticated");
+    if (saved && isAuth === "true") {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.isLoggedIn) return parsed;
+      } catch {}
+    }
+    return GUEST_USER;
   });
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     const saved = localStorage.getItem("daisu_current_user");
-    if (saved) {
+    const isAuth = localStorage.getItem("daisu_is_authenticated");
+    if (saved && isAuth === "true") {
       try {
         const u = JSON.parse(saved);
-        if (u.role) return u.role;
+        if (u.role && u.isLoggedIn) return u.role;
       } catch (e) {}
     }
-    return "student";
+    return "guest";
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const saved = localStorage.getItem("daisu_is_authenticated");
@@ -304,6 +314,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const openAdminPinModal = (tab: "verify" | "change_key" = "verify") => {
     setAdminPinModalTab(tab);
     setIsAdminPinModalOpen(true);
+  };
+
+  const continueAsGuest = () => {
+    setCurrentUser(GUEST_USER);
+    setCurrentRole("guest");
+    setIsAuthenticated(false);
+    localStorage.setItem("daisu_current_user", JSON.stringify(GUEST_USER));
+    localStorage.setItem("daisu_is_authenticated", "false");
+    localStorage.setItem("daisu_has_visited", "true");
+    setIsAuthModalOpen(false);
+    showToast("Bạn đang xem trang ở chế độ Khách (Chỉ xem tin tức). Đăng nhập bất cứ lúc nào khi cần đăng bài hoặc duyệt bài!", "info");
   };
   const [isAccountSettingsModalOpen, setIsAccountSettingsModalOpen] = useState(false);
   const [isEmailPermissionModalOpen, setIsEmailPermissionModalOpen] = useState(false);
@@ -1122,7 +1143,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let assignedClubRole = "Học sinh Tham gia CLB";
     let assignedClubDuties = "Học tập kỹ năng số và tham gia hoạt động CLB";
     let assignedClassroom = customData?.classroom || existingProfile?.classroom || "Lớp 8A";
-    let assignedAccountType: "student" | "teacher" = customData?.accountType || existingProfile?.accountType || "student";
+    let assignedAccountType: "student" | "teacher" =
+      customData?.accountType === "teacher" || existingProfile?.accountType === "teacher"
+        ? "teacher"
+        : "student";
 
     if (matchedPerm && matchedPerm.status === "active") {
       // If recognized from official permissions table:
@@ -1172,7 +1196,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else {
         assignedRole = existingProfile.role;
         assignedRoleTitle = existingProfile.roleTitle || "Học sinh Thành viên CLB";
-        assignedAccountType = existingProfile.accountType || "student";
+        assignedAccountType = existingProfile.accountType === "teacher" ? "teacher" : "student";
       }
       assignedClubRole = existingProfile.clubRole || (assignedAccountType === "teacher" ? "Giáo viên CLB" : "Học sinh CLB");
       assignedClubDuties = existingProfile.clubDuties || assignedClubDuties;
@@ -1180,7 +1204,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       assignedRole = "student";
       assignedRoleTitle = customData?.accountType === "teacher" ? "Giáo viên Quan sát (Chưa cấp quyền quản trị)" : "Học sinh Thành viên CLB";
-      assignedAccountType = customData?.accountType || "student";
+      assignedAccountType = customData?.accountType === "teacher" ? "teacher" : "student";
       assignedClubRole = customData?.clubRole || "Học sinh Tham gia CLB";
       assignedClassroom = customData?.classroom || "Lớp 8A";
     }
@@ -1308,7 +1332,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     let assignedRole: UserRole = "student";
     let assignedRoleTitle = "Học sinh Thành viên";
-    let assignedAccountType: "student" | "teacher" = extraData?.accountType || "student";
+    let assignedAccountType: "student" | "teacher" =
+      extraData?.accountType === "teacher" || matchedPerm?.accountType === "teacher" ? "teacher" : "student";
     let assignedClubRole = "Học viên CLB Kỹ năng số";
     let assignedClubDuties = "Học tập kỹ năng số, thực hành AI an toàn và nộp bài";
     let assignedClassroom = extraData?.classroom || "Lớp 8A";
@@ -1387,19 +1412,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = () => {
-    const guestUser: UserProfile = {
-      ...MOCK_USERS.student,
-      id: "guest_" + Date.now(),
-      name: "Khách tham quan",
-      email: "",
-      isLoggedIn: false,
-    };
-    setCurrentUser(guestUser);
-    setCurrentRole("student");
+    setCurrentUser(GUEST_USER);
+    setCurrentRole("guest");
     setIsAuthenticated(false);
-    localStorage.setItem("daisu_current_user", JSON.stringify(guestUser));
+    localStorage.setItem("daisu_current_user", JSON.stringify(GUEST_USER));
     localStorage.setItem("daisu_is_authenticated", JSON.stringify(false));
-    showToast("Đã đăng xuất tài khoản. Bạn đang ở chế độ xem khách.", "info");
+    showToast("Đã đăng xuất tài khoản. Bạn đang ở chế độ Khách (Chỉ xem tin tức).", "info");
   };
 
   const updateAdvisor = (id: string, data: Partial<ClubAdvisor>) => {
@@ -1814,6 +1832,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const createPost = (postData: Partial<Post>) => {
+    if (currentRole === "guest" || !currentUser.isLoggedIn) {
+      showToast("Bạn đang xem trang ở chế độ Khách. Vui lòng đăng nhập để đăng bài viết!", "warning");
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     const now = Date.now();
     const formattedDate = new Date().toLocaleDateString("vi-VN", {
       day: "2-digit",
@@ -2232,6 +2256,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const submitStudentWork = (work: Partial<StudentWork>) => {
+    if (currentRole === "guest" || !currentUser.isLoggedIn) {
+      showToast("Bạn đang xem trang ở chế độ Khách. Vui lòng đăng nhập để nộp sản phẩm số!", "warning");
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     const newWork: StudentWork = {
       id: "work_" + Date.now(),
       title: work.title || "Sản phẩm số học sinh",
@@ -2988,6 +3018,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         checkUserRegistered,
         loginWithGoogle,
         loginWithEmail,
+        continueAsGuest,
         logout,
         updateUserProfile,
 
