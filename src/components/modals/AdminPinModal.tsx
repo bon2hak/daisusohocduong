@@ -82,6 +82,7 @@ export const AdminPinModal: React.FC = () => {
     // Check if email is authorized in emailPermissions
     const isPermitted =
       cleanEmail === "bon2beaking2@gmail.com" ||
+      cleanEmail === "thumai@detham.edu.vn" ||
       cleanEmail === "hoanghx@detham.edu.vn" ||
       emailPermissions.some(
         (p) =>
@@ -92,7 +93,7 @@ export const AdminPinModal: React.FC = () => {
 
     if (!isPermitted) {
       setErrorMessage(
-        "Email này không nằm trong danh sách Ban Quản Trị & Cố Vấn được phê chuẩn. Vui lòng liên hệ Thầy Huỳnh Xuân Hoàng!"
+        "Email này không nằm trong danh sách Ban Quản Trị & Cố Vấn được phê chuẩn. Vui lòng liên hệ Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)!"
       );
       return;
     }
@@ -272,7 +273,7 @@ export const AdminPinModal: React.FC = () => {
                     setPinInput(e.target.value);
                     setErrorMessage("");
                   }}
-                  placeholder="Nhập Khóa bảo mật do Thầy Hoàng cấp..."
+                  placeholder="Nhập Khóa bảo mật do Cô Phạm Thị Thu Mai cấp..."
                   className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-xs pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-hidden transition-all text-slate-900 font-mono tracking-wider"
                 />
                 <button

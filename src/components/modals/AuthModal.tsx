@@ -49,7 +49,7 @@ const AVATAR_PRESETS = [
     category: "teacher",
   },
   {
-    name: "Thầy Chủ nhiệm CLB",
+    name: "Cô Chủ nhiệm CLB",
     url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
     category: "teacher",
   },
@@ -222,6 +222,7 @@ export const AuthModal: React.FC = () => {
     // Check if this email is permitted as super_admin or teacher
     const isPermittedEmail =
       cleanEmail === "bon2beaking2@gmail.com" ||
+      cleanEmail === "thumai@detham.edu.vn" ||
       cleanEmail === "hoanghx@detham.edu.vn" ||
       emailPermissions.some(
         (p) =>
@@ -232,7 +233,7 @@ export const AuthModal: React.FC = () => {
 
     if (!isPermittedEmail) {
       setAdminAuthError(
-        "Email này không thuộc danh sách Ban Quản Trị & Cố Vấn được phê chuẩn. Vui lòng liên hệ Thầy Huỳnh Xuân Hoàng!"
+        "Email này không thuộc danh sách Ban Quản Trị & Cố Vấn được phê chuẩn. Vui lòng liên hệ Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)!"
       );
       return;
     }
@@ -254,7 +255,7 @@ export const AuthModal: React.FC = () => {
     const targetRole = matchedPerm ? matchedPerm.role : "super_admin";
     const targetTitle = matchedPerm ? matchedPerm.roleTitle : "Chủ nhiệm CLB & Quản trị viên Tối cao";
     const targetClubRole = matchedPerm ? matchedPerm.clubRole : "Chủ nhiệm Câu lạc bộ";
-    const targetName = matchedPerm ? matchedPerm.name : "Thầy Huỳnh Xuân Hoàng";
+    const targetName = matchedPerm ? matchedPerm.name : "Cô Phạm Thị Thu Mai";
 
     loginWithGoogle({
       email: cleanEmail,
@@ -526,7 +527,7 @@ export const AuthModal: React.FC = () => {
                   <span>Xác thực 2 Lớp: Email Ban Quản Trị + Khóa Master Key</span>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
-                  Để đảm bảo tính bảo mật và quyền kiểm soát bài viết, tài khoản Quản trị viên (Thầy Huỳnh Xuân Hoàng) và Giáo viên Cố vấn không hiển thị sẵn công khai. Người dùng phải nhập đúng Gmail được phân quyền và Khóa Bảo Mật Quản Trị.
+                  Để đảm bảo tính bảo mật và quyền kiểm soát bài viết, tài khoản Quản trị viên (Cô Phạm Thị Thu Mai) và Giáo viên Cố vấn không hiển thị sẵn công khai. Người dùng phải nhập đúng Gmail được phân quyền và Khóa Bảo Mật Quản Trị.
                 </p>
               </div>
 
@@ -545,7 +546,7 @@ export const AuthModal: React.FC = () => {
                       setAdminEmail(e.target.value);
                       setAdminAuthError("");
                     }}
-                    placeholder="ví dụ: bon2beaking2@gmail.com hoặc hoanghx@detham.edu.vn"
+                    placeholder="ví dụ: bon2beaking2@gmail.com hoặc thumai@detham.edu.vn"
                     className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-3 py-3 rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-hidden font-medium"
                   />
                 </div>
@@ -573,7 +574,7 @@ export const AuthModal: React.FC = () => {
                       setAdminSecurityKey(e.target.value);
                       setAdminAuthError("");
                     }}
-                    placeholder="Nhập Khóa bảo mật do Thầy Huỳnh Xuân Hoàng cấp..."
+                    placeholder="Nhập Khóa bảo mật do Cô Phạm Thị Thu Mai cấp..."
                     className="w-full bg-slate-50 focus:bg-white text-xs pl-9 pr-10 py-3 rounded-xl border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-hidden font-mono tracking-wider font-semibold"
                   />
                   <button

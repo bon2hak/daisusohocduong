@@ -260,7 +260,7 @@ export const EmailPermissionModal: React.FC = () => {
                     required
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
-                    placeholder="ví dụ: Thầy Huỳnh Xuân Hoàng"
+                    placeholder="ví dụ: Cô Phạm Thị Thu Mai"
                     className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-hidden"
                   />
                 </div>

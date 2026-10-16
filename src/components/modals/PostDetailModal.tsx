@@ -168,7 +168,7 @@ export const PostDetailModal: React.FC = () => {
                   <div className="text-xs font-bold text-red-950 flex items-center gap-1.5">
                     <span>Quyền Quản trị Chủ nhiệm CLB</span>
                     <span className="text-[10px] font-semibold bg-red-200/80 text-red-800 px-1.5 py-0.2 rounded">
-                      Thầy Huỳnh Xuân Hoàng
+                      Cô Phạm Thị Thu Mai
                     </span>
                   </div>
                   <div className="text-[11px] text-red-800">

@@ -1588,7 +1588,7 @@
   "advisors": [
     {
       "id": "advisor_01",
-      "name": "Thầy Huỳnh Xuân Hoàng",
+      "name": "Cô Phạm Thị Thu Mai ",
       "role": "Chủ nhiệm Câu lạc bộ",
       "roleType": "leader",
       "department": "Ban Điều hành & Chủ nhiệm CLB Đại sứ số",
@@ -1606,7 +1606,7 @@
     },
     {
       "id": "advisor_09",
-      "name": "Thầy Phạm Văn Nam",
+      "name": "Thầy Đặng Tiến Ninh",
       "role": "Phó Ban Điều hành & Quản trị CLB",
       "roleType": "leader",
       "department": "Ban Quản trị & Điều hành CLB",
@@ -1623,7 +1623,7 @@
     },
     {
       "id": "advisor_10",
-      "name": "Cô Hoàng Thu Thủy",
+      "name": "Cô Phạm Thị Thu Mai",
       "role": "Ban Quản trị & Điều hành CLB",
       "roleType": "leader",
       "department": "Ban Quản trị & Phong trào Học sinh số",

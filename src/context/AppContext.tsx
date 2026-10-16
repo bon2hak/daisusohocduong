@@ -280,7 +280,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved && isAuth === "true") {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.isLoggedIn) return parsed;
+        if (parsed && parsed.isLoggedIn) {
+          if (parsed.role === "super_admin" && (parsed.name?.includes("Hoàng") || parsed.name?.includes("Huỳnh"))) {
+            parsed.name = "Cô Phạm Thị Thu Mai";
+            parsed.roleTitle = "Chủ nhiệm CLB & Quản trị viên Cổng thông tin";
+            parsed.clubRole = "Chủ nhiệm Câu lạc bộ";
+            try {
+              localStorage.setItem("daisu_current_user", JSON.stringify(parsed));
+            } catch {}
+          }
+          return parsed;
+        }
       } catch {}
     }
     return GUEST_USER;
@@ -848,6 +858,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const emailToAuth = (specificEmail || currentUser.email || "").toLowerCase().trim();
     const isTargetAdmin =
       emailToAuth === "bon2beaking2@gmail.com" ||
+      emailToAuth === "thumai@detham.edu.vn" ||
       emailToAuth === "hoanghx@detham.edu.vn" ||
       emailPermissions.some(
         (p) =>
@@ -896,7 +907,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (role === "super_admin" || role === "teacher") {
       const perm = findPermissionByEmail(currentUser.email);
       const isAuthorizedEmail = perm && (perm.role === role || perm.role === "super_admin");
-      const isLoggedAsSuperAdmin = currentUser.role === "super_admin" && (currentUser.email === "bon2beaking2@gmail.com" || currentUser.email === "hoanghx@detham.edu.vn");
+      const isLoggedAsSuperAdmin = currentUser.role === "super_admin" && (currentUser.email === "bon2beaking2@gmail.com" || currentUser.email === "thumai@detham.edu.vn" || currentUser.email === "hoanghx@detham.edu.vn");
 
       if (!isAuthorizedEmail && !isLoggedAsSuperAdmin) {
         setIsAdminPinModalOpen(true);
@@ -928,7 +939,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addEmailPermission = (permData: Omit<EmailPermission, "id" | "grantedAt">) => {
     if (currentRole !== "super_admin") {
       setIsAdminPinModalOpen(true);
-      showToast("Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền thêm phân quyền Email!", "error");
+      showToast("Chỉ Chủ nhiệm CLB (Cô Phạm Thị Thu Mai) mới có quyền thêm phân quyền Email!", "error");
       return;
     }
 
@@ -966,7 +977,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateEmailPermission = (id: string, data: Partial<EmailPermission>) => {
     if (currentRole !== "super_admin") {
       setIsAdminPinModalOpen(true);
-      showToast("Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền chỉnh sửa phân quyền Email!", "error");
+      showToast("Chỉ Chủ nhiệm CLB (Cô Phạm Thị Thu Mai) mới có quyền chỉnh sửa phân quyền Email!", "error");
       return;
     }
 
@@ -998,7 +1009,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteEmailPermission = (id: string) => {
     if (currentRole !== "super_admin") {
       setIsAdminPinModalOpen(true);
-      showToast("Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền xoá phân quyền Email!", "error");
+      showToast("Chỉ Chủ nhiệm CLB (Cô Phạm Thị Thu Mai) mới có quyền xoá phân quyền Email!", "error");
       return;
     }
 
@@ -1025,6 +1036,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               acc &&
               acc.email &&
               acc.email !== "bon2beaking2@gmail.com" &&
+              acc.email !== "thumai@detham.edu.vn" &&
               acc.email !== "hoanghx@detham.edu.vn" &&
               acc.email !== "ninhdt@detham.edu.vn"
           );

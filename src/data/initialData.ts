@@ -52,7 +52,7 @@ export const CLUB_ADVISORY_BOARD: ClubAdvisor[] = [
       "Đại diện CLB trong các hoạt động liên kết chuyển đổi số cấp trường và cấp ngành"
     ],
     bio: "Chủ nhiệm CLB Đại sứ số Trường THCS Đề Thám. Người sáng lập và dẫn dắt phong trào học sinh số, xây dựng văn hóa học đường văn minh và hiện đại.",
-    contactEmail: "hoanghx@detham.edu.vn"
+    contactEmail: "thumai@detham.edu.vn"
   },
   {
     id: "advisor_09",
@@ -223,6 +223,21 @@ export const INITIAL_EMAIL_PERMISSIONS: EmailPermission[] = [
   },
   {
     id: "perm_02",
+    email: "thumai@detham.edu.vn",
+    name: "Cô Phạm Thị Thu Mai",
+    role: "super_admin",
+    roleTitle: "Chủ nhiệm CLB & Quản trị viên Cổng thông tin",
+    accountType: "teacher",
+    clubRole: "Chủ nhiệm Câu lạc bộ",
+    clubDuties: "Chỉ đạo toàn diện kế hoạch chuyển đổi số, phê duyệt bài viết và ban hành nội dung số",
+    classroom: "Chủ nhiệm CLB Đại sứ số",
+    grantedBy: "Ban Giám hiệu Trường THCS Đề Thám",
+    grantedAt: "01/09/2026",
+    status: "active",
+    notes: "Tài khoản cán bộ quản trị trường THCS Đề Thám",
+  },
+  {
+    id: "perm_02_legacy",
     email: "hoanghx@detham.edu.vn",
     name: "Cô Phạm Thị Thu Mai",
     role: "super_admin",
@@ -376,7 +391,7 @@ export const INITIAL_EMAIL_PERMISSIONS: EmailPermission[] = [
 export const MOCK_USERS: Record<string, UserProfile> = {
   super_admin: {
     id: "user_admin_01",
-    name: "Cô Phạm Thị Thu Mai ",
+    name: "Cô Phạm Thị Thu Mai",
     email: "bon2beaking@gmail.com",
     role: "super_admin",
     roleTitle: "Chủ nhiệm CLB & Quản trị viên Cổng thông tin",
