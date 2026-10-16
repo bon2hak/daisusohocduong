@@ -1397,7 +1397,7 @@
       "clubRole": "Trưởng ban Truyền thông & Sáng tạo Số",
       "clubDuties": "Thiết kế ấn phẩm truyền thông Canva, dựng video ngắn và hướng dẫn học sinh lớp dưới",
       "classroom": "Lớp 8A",
-      "grantedBy": "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+      "grantedBy": "Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)",
       "grantedAt": "10/09/2025",
       "status": "active",
       "notes": "Đại sứ số nòng cốt khối 8"
@@ -1412,7 +1412,7 @@
       "clubRole": "Thành viên Ban Kỹ thuật & AI",
       "clubDuties": "Khám phá công cụ AI mới, tham gia các buổi sinh hoạt CLB và nộp sản phẩm số",
       "classroom": "Lớp 7B",
-      "grantedBy": "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+      "grantedBy": "Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)",
       "grantedAt": "15/09/2025",
       "status": "active",
       "notes": "Thành viên CLB học sinh khối 7"
@@ -1588,7 +1588,7 @@
   "advisors": [
     {
       "id": "advisor_01",
-      "name": "Cô Phạm Thị Thu Mai ",
+      "name": "Cô Phạm Thị Thu Mai",
       "role": "Chủ nhiệm Câu lạc bộ",
       "roleType": "leader",
       "department": "Ban Điều hành & Chủ nhiệm CLB Đại sứ số",

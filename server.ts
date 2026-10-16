@@ -155,13 +155,17 @@ async function startServer() {
       }
 
       const cleanEmail = (adminEmail || "").toLowerCase().trim();
-      const isRoot = cleanEmail === "bon2beaking2@gmail.com" || cleanEmail === "hoanghx@detham.edu.vn";
+      const isRoot =
+        cleanEmail === "bon2beaking2@gmail.com" ||
+        cleanEmail === "thumai@detham.edu.vn" ||
+        cleanEmail === "thumaipt@detham.edu.vn" ||
+        cleanEmail === "hoanghx@detham.edu.vn";
       const isPermittedSuperAdmin = store.emailPermissions.some(
         (p: any) => p.email && p.email.toLowerCase() === cleanEmail && p.role === "super_admin" && p.status === "active"
       );
 
       if (!isRoot && !isPermittedSuperAdmin) {
-        return res.status(403).json({ success: false, error: "Chỉ Chủ nhiệm CLB (Thầy Huỳnh Xuân Hoàng) mới có quyền đổi Khóa Bảo Mật!" });
+        return res.status(403).json({ success: false, error: "Chỉ Chủ nhiệm CLB (Cô Phạm Thị Thu Mai) mới có quyền đổi Khóa Bảo Mật!" });
       }
 
       saveStore({ adminMasterKey: newKey.trim() });
