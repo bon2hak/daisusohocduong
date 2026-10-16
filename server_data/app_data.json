@@ -970,7 +970,7 @@
       "thumbnail": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80",
       "videoEmbedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
       "duration": "06:45",
-      "author": "Cô Nguyễn Mai Lan",
+      "author": "Cô Nguyễn Thị Mùi",
       "views": 1850,
       "description": "Video hướng dẫn chi tiết cách kích hoạt tài khoản Google Workspace for Education và cài mã xác thực an toàn.",
       "tags": [
@@ -1255,7 +1255,7 @@
     {
       "id": "perm_01",
       "email": "bon2beaking2@gmail.com",
-      "name": "Ban Quản Trị Hệ Thống / Thầy Huỳnh Xuân Hoàng",
+      "name": "Ban Quản Trị Hệ Thống / Cô Phạm Thị Thu Mai",
       "role": "super_admin",
       "roleTitle": "Chủ nhiệm CLB & Quản trị viên Tối cao",
       "accountType": "teacher",
@@ -1269,8 +1269,8 @@
     },
     {
       "id": "perm_02",
-      "email": "hoanghx@detham.edu.vn",
-      "name": "Thầy Huỳnh Xuân Hoàng",
+      "email": "thumaipt@detham.edu.vn",
+      "name": "Cô Phạm Thị Thu Mai",
       "role": "super_admin",
       "roleTitle": "Chủ nhiệm CLB & Quản trị viên Cổng thông tin",
       "accountType": "teacher",
@@ -1292,7 +1292,7 @@
       "clubRole": "Tổ Kỹ thuật & Chuyển đổi số",
       "clubDuties": "Tư vấn nền tảng số, hỗ trợ xử lý kỹ thuật, kiểm tra tính khả thi sản phẩm số",
       "classroom": "Tổ Kỹ thuật & Chuyển đổi số",
-      "grantedBy": "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+      "grantedBy": "Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)",
       "grantedAt": "05/09/2025",
       "status": "active",
       "notes": "Giáo viên Cố vấn Kỹ thuật"
@@ -1307,7 +1307,7 @@
       "clubRole": "Tổ Đánh giá & Kiểm định chất lượng",
       "clubDuties": "Theo dõi tiến độ các tổ, kiểm tra minh chứng hoạt động, đánh giá kết quả thành viên",
       "classroom": "Ban Kiểm định & Khảo thí",
-      "grantedBy": "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+      "grantedBy": "Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)",
       "grantedAt": "05/09/2025",
       "status": "active",
       "notes": "Giáo viên Cố vấn Đánh giá"
@@ -1322,7 +1322,7 @@
       "clubRole": "Tổ AI & Công nghệ học tập",
       "clubDuties": "Định hướng AI trong giáo dục, hướng dẫn Tổ AI học tập",
       "classroom": "Tổ Nghiên cứu AI & STEM",
-      "grantedBy": "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+      "grantedBy": "Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)",
       "grantedAt": "05/09/2025",
       "status": "active",
       "notes": "Giáo viên Cố vấn AI"
@@ -1337,7 +1337,7 @@
       "clubRole": "Tổ Dữ liệu & Hỗ trợ Giáo viên",
       "clubDuties": "Hướng dẫn khảo sát số, hỗ trợ giáo viên ứng dụng công cụ số",
       "classroom": "Tổ Dữ liệu Giáo dục",
-      "grantedBy": "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+      "grantedBy": "Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)",
       "grantedAt": "05/09/2025",
       "status": "active",
       "notes": "Giáo viên Cố vấn Dữ liệu"
@@ -1352,7 +1352,7 @@
       "clubRole": "Tổ Công dân số & An toàn Văn hóa số",
       "clubDuties": "Phụ trách nội dung giáo dục công dân số, hướng dẫn Tổ An toàn và Văn hóa số",
       "classroom": "Tổ Đoàn Đội & Kỹ năng",
-      "grantedBy": "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+      "grantedBy": "Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)",
       "grantedAt": "05/09/2025",
       "status": "active",
       "notes": "Giáo viên Cố vấn Công dân số"
@@ -1367,7 +1367,7 @@
       "clubRole": "Tổ Truyền thông số",
       "clubDuties": "Quản lý hình ảnh truyền thông CLB, hướng dẫn Tổ Truyền thông số",
       "classroom": "Ban Truyền thông Đa phương tiện",
-      "grantedBy": "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+      "grantedBy": "Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)",
       "grantedAt": "05/09/2025",
       "status": "active",
       "notes": "Giáo viên Cố vấn Truyền thông"
@@ -1382,7 +1382,7 @@
       "clubRole": "Tổ Tư vấn Tâm lý Học đường & Kỹ năng Sống",
       "clubDuties": "Tư vấn tâm lý học đường, an toàn cảm xúc trong môi trường số, hỗ trợ giải tỏa áp lực",
       "classroom": "Tổ Tâm lý & Kỹ năng",
-      "grantedBy": "Thầy Huỳnh Xuân Hoàng (Chủ nhiệm CLB)",
+      "grantedBy": "Cô Phạm Thị Thu Mai (Chủ nhiệm CLB)",
       "grantedAt": "05/09/2025",
       "status": "active",
       "notes": "Giáo viên Cố vấn Tâm lý"
@@ -1602,7 +1602,7 @@
         "Đại diện CLB trong các hoạt động liên kết chuyển đổi số cấp trường và cấp ngành"
       ],
       "bio": "Chủ nhiệm CLB Đại sứ số Trường THCS Đề Thám. Người sáng lập và dẫn dắt phong trào học sinh số, xây dựng văn hóa học đường văn minh và hiện đại.",
-      "contactEmail": "hoanghx@detham.edu.vn"
+      "contactEmail": "thumaipt@detham.edu.vn"
     },
     {
       "id": "advisor_09",
