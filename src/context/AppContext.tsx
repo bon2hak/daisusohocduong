@@ -273,6 +273,30 @@ export const getPostSortTime = (p: Post): number => {
   return 0;
 };
 
+// Sanitize any legacy cached references from user's browser localStorage immediately
+try {
+  if (typeof window !== "undefined" && window.localStorage) {
+    const keysToClean = [
+      "daisu_current_user",
+      "daisu_advisors",
+      "daisu_registered_profiles",
+      "daisu_posts",
+      "daisu_email_permissions",
+      "daisu_saved_google_accounts",
+    ];
+    for (const key of keysToClean) {
+      const val = localStorage.getItem(key);
+      if (val && (val.includes("Hoàng") || val.includes("Huỳnh") || val.includes("hoanghx"))) {
+        const cleaned = val
+          .replace(/Thầy\s+Huỳnh\s+Xuân\s+Hoàng/g, "Cô Phạm Thị Thu Mai")
+          .replace(/Huỳnh\s+Xuân\s+Hoàng/g, "Phạm Thị Thu Mai")
+          .replace(/Thầy\s+Hoàng/g, "Cô Mai");
+        localStorage.setItem(key, cleaned);
+      }
+    }
+  }
+} catch {}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem("daisu_current_user");
@@ -419,7 +443,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const map = new Map<string, ClubAdvisor>();
           CLUB_ADVISORY_BOARD.forEach((a) => map.set(a.id, a));
           parsed.forEach((a) => {
-            if (a && a.id) map.set(a.id, { ...(map.get(a.id) || {}), ...a });
+            if (a && a.id) {
+              if (a.id === "advisor_01" || /huỳnh|xuân hoàng/i.test(a.name || "")) {
+                a.name = "Cô Phạm Thị Thu Mai";
+                a.contactEmail = "thumai@detham.edu.vn";
+              }
+              map.set(a.id, { ...(map.get(a.id) || {}), ...a });
+            }
           });
           return Array.from(map.values());
         }
@@ -468,7 +498,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (!snapshot.empty && isMounted) {
             const remotePosts: Post[] = [];
             snapshot.forEach((docSnap) => {
-              remotePosts.push(docSnap.data() as Post);
+              const p = docSnap.data() as Post;
+              if (p) {
+                if (/huỳnh|xuân hoàng/i.test(p.authorName || "")) {
+                  p.authorName = "Cô Phạm Thị Thu Mai";
+                }
+                remotePosts.push(p);
+              }
             });
             // Sort by published/created timestamp descending if available
             remotePosts.sort((a, b) => getPostSortTime(b) - getPostSortTime(a));
@@ -584,6 +620,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             snapshot.forEach((docSnap) => {
               const data = docSnap.data() as ClubAdvisor;
               if (data && data.id) {
+                if (data.id === "advisor_01" || /huỳnh|xuân hoàng/i.test(data.name || "")) {
+                  data.name = "Cô Phạm Thị Thu Mai";
+                  data.contactEmail = "thumai@detham.edu.vn";
+                }
                 map.set(data.id, { ...(map.get(data.id) || {}), ...data });
               }
             });
@@ -609,6 +649,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               const profileData = docSnap.data();
               const email = (profileData.email || docSnap.id).toLowerCase();
               if (email) {
+                if (/huỳnh|xuân hoàng/i.test(profileData.name || "")) {
+                  profileData.name = "Cô Phạm Thị Thu Mai";
+                }
                 setRegisteredProfiles((prev) => {
                   const next = { ...prev, [email]: { ...prev[email], ...profileData } };
                   try {
